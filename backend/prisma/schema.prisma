@@ -1,0 +1,191 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  HOST
+  GUEST
+}
+
+enum ScreenType {
+  TV_4K
+  PROJECTOR
+}
+
+enum SeatType {
+  CHAIR
+  SINGLE_SOFA
+  RECLINER
+  THREE_SEATER_SOFA
+  BED_SINGLE
+  BED_DOUBLE
+  BED_TRIPLE
+}
+
+enum ShowStatus {
+  SCHEDULED
+  NOW_PLAYING
+  COMPLETED
+  CANCELLED
+}
+
+enum TicketStatus {
+  BOOKED
+  CHECKED_IN
+  COMPLETED
+  CANCELLED
+}
+
+enum MovieRequestStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String
+  role      UserRole?
+  latitude  Float?
+  longitude Float?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  venues        Venue[]
+  tickets       Ticket[]
+  reviewsGiven  Review[]       @relation("ReviewAuthor")
+  reviewsReceived Review[]     @relation("ReviewTarget")
+  movieRequestsSent MovieRequest[] @relation("RequestSender")
+  movieRequestsReceived MovieRequest[] @relation("RequestReceiver")
+
+  @@map("users")
+}
+
+model Venue {
+  id         String     @id @default(uuid())
+  hostId     String
+  name       String
+  address    String
+  latitude   Float
+  longitude  Float
+  screenType ScreenType
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  host   User   @relation(fields: [hostId], references: [id])
+  seats  Seat[]
+  shows  Show[]
+  snacks Snack[]
+
+  @@map("venues")
+}
+
+model Seat {
+  id       String   @id @default(uuid())
+  venueId  String
+  type     SeatType
+  label    String
+  row      Int
+  col      Int
+  capacity Int      @default(1)
+  createdAt DateTime @default(now())
+
+  venue   Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  tickets Ticket[]
+
+  @@unique([venueId, row, col])
+  @@map("seats")
+}
+
+model Show {
+  id           String     @id @default(uuid())
+  venueId      String
+  tmdbMovieId  Int
+  movieTitle   String
+  moviePoster  String?
+  startTime    DateTime
+  endTime      DateTime
+  isFree       Boolean    @default(false)
+  price        Float      @default(0)
+  status       ShowStatus @default(SCHEDULED)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  venue   Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  tickets Ticket[]
+  reviews Review[]
+
+  @@map("shows")
+}
+
+model Ticket {
+  id       String       @id @default(uuid())
+  showId   String
+  seatId   String
+  guestId  String
+  status   TicketStatus @default(BOOKED)
+  price    Float
+  createdAt DateTime    @default(now())
+
+  show   Show   @relation(fields: [showId], references: [id], onDelete: Cascade)
+  seat   Seat   @relation(fields: [seatId], references: [id])
+  guest  User   @relation(fields: [guestId], references: [id])
+  review Review?
+
+  @@unique([showId, seatId])
+  @@map("tickets")
+}
+
+model Review {
+  id       String @id @default(uuid())
+  showId   String
+  hostId   String
+  guestId  String
+  ticketId String @unique
+  rating   Int
+  comment  String?
+  createdAt DateTime @default(now())
+
+  show   Show   @relation(fields: [showId], references: [id], onDelete: Cascade)
+  host   User   @relation("ReviewTarget", fields: [hostId], references: [id])
+  guest  User   @relation("ReviewAuthor", fields: [guestId], references: [id])
+  ticket Ticket @relation(fields: [ticketId], references: [id])
+
+  @@map("reviews")
+}
+
+model MovieRequest {
+  id           String             @id @default(uuid())
+  guestId      String
+  hostId       String
+  tmdbMovieId  Int
+  movieTitle   String
+  status       MovieRequestStatus @default(PENDING)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  guest User @relation("RequestSender", fields: [guestId], references: [id])
+  host  User @relation("RequestReceiver", fields: [hostId], references: [id])
+
+  @@map("movie_requests")
+}
+
+model Snack {
+  id          String  @id @default(uuid())
+  venueId     String
+  name        String
+  description String?
+  price       Float   @default(0)
+  available   Boolean @default(true)
+  createdAt   DateTime @default(now())
+
+  venue Venue @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  @@map("snacks")
+}
