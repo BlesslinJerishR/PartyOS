@@ -12,7 +12,8 @@ import {
   Switch,
 } from 'react-native';
 import { api } from '../../services/api';
-import Colors from '../../constants/Colors';
+import { useTheme } from '../../context/AuthContext';
+import { Fonts } from '../../constants/Fonts';
 import { Snack, Venue } from '../../types';
 import { Plus, X, Trash2, Cookie } from 'lucide-react-native';
 
@@ -27,6 +28,8 @@ export default function SnacksScreen() {
   const [description, setDescription] = useState('');
   const [snackPrice, setSnackPrice] = useState('');
   const [available, setAvailable] = useState(true);
+
+  const { colors } = useTheme();
 
   const loadVenues = useCallback(async () => {
     try {
@@ -122,7 +125,7 @@ export default function SnacksScreen() {
 
   return (
     <ScrollView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.surface }]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
       <View style={styles.venueSelector}>
@@ -132,14 +135,16 @@ export default function SnacksScreen() {
               key={venue.id}
               style={[
                 styles.venueChip,
-                selectedVenueId === venue.id && styles.venueChipActive,
+                { backgroundColor: colors.background, borderColor: colors.border },
+                selectedVenueId === venue.id && [styles.venueChipActive, { backgroundColor: colors.primary, borderColor: colors.primary }],
               ]}
               onPress={() => setSelectedVenueId(venue.id)}
             >
               <Text
                 style={[
                   styles.venueChipText,
-                  selectedVenueId === venue.id && styles.venueChipTextActive,
+                  { color: colors.text, fontFamily: Fonts.regular },
+                  selectedVenueId === venue.id && [styles.venueChipTextActive, { color: colors.white }],
                 ]}
               >
                 {venue.name}
@@ -150,22 +155,22 @@ export default function SnacksScreen() {
       </View>
 
       <TouchableOpacity
-        style={styles.addButton}
+        style={[styles.addButton, { backgroundColor: colors.primary }]}
         onPress={() => setShowCreate(true)}
       >
-        <Plus size={20} color={Colors.white} strokeWidth={2} />
-        <Text style={styles.addButtonText}>Add Snack</Text>
+        <Plus size={20} color={colors.white} strokeWidth={2} />
+        <Text style={[styles.addButtonText, { color: colors.white, fontFamily: Fonts.semiBold }]}>Add Snack</Text>
       </TouchableOpacity>
 
       {snacks.map((snack) => (
-        <View key={snack.id} style={styles.snackCard}>
+        <View key={snack.id} style={[styles.snackCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
           <View style={styles.snackRow}>
             <View style={styles.snackInfo}>
-              <Text style={styles.snackName}>{snack.name}</Text>
+              <Text style={[styles.snackName, { color: colors.text, fontFamily: Fonts.semiBold }]}>{snack.name}</Text>
               {snack.description && (
-                <Text style={styles.snackDesc}>{snack.description}</Text>
+                <Text style={[styles.snackDesc, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>{snack.description}</Text>
               )}
-              <Text style={styles.snackPrice}>
+              <Text style={[styles.snackPrice, { color: colors.primary, fontFamily: Fonts.medium }]}>
                 {snack.price === 0 ? 'Free' : `${snack.price}`}
               </Text>
             </View>
@@ -173,11 +178,11 @@ export default function SnacksScreen() {
               <Switch
                 value={snack.available}
                 onValueChange={() => handleToggleAvailable(snack)}
-                trackColor={{ false: Colors.border, true: Colors.primaryLight }}
-                thumbColor={snack.available ? Colors.primary : Colors.textLight}
+                trackColor={{ false: colors.border, true: colors.primaryLight }}
+                thumbColor={snack.available ? colors.primary : colors.textLight}
               />
               <TouchableOpacity onPress={() => handleDelete(snack.id)}>
-                <Trash2 size={18} color={Colors.error} strokeWidth={1.8} />
+                <Trash2 size={18} color={colors.error} strokeWidth={1.8} />
               </TouchableOpacity>
             </View>
           </View>
@@ -186,57 +191,57 @@ export default function SnacksScreen() {
 
       {snacks.length === 0 && selectedVenueId && (
         <View style={styles.emptyState}>
-          <Cookie size={40} color={Colors.textLight} strokeWidth={1.5} />
-          <Text style={styles.emptyTitle}>No Snacks</Text>
-          <Text style={styles.emptyText}>
+          <Cookie size={40} color={colors.textLight} strokeWidth={1.5} />
+          <Text style={[styles.emptyTitle, { color: colors.text, fontFamily: Fonts.semiBold }]}>No Snacks</Text>
+          <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>
             Add snacks that will be available at your venue
           </Text>
         </View>
       )}
 
       <Modal visible={showCreate} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <View style={[styles.modalOverlay, { backgroundColor: colors.overlay }]}>
+          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Add Snack</Text>
+              <Text style={[styles.modalTitle, { color: colors.text, fontFamily: Fonts.bold }]}>Add Snack</Text>
               <TouchableOpacity onPress={() => setShowCreate(false)}>
-                <X size={24} color={Colors.text} strokeWidth={1.8} />
+                <X size={24} color={colors.text} strokeWidth={1.8} />
               </TouchableOpacity>
             </View>
             <TextInput
-              style={styles.modalInput}
+              style={[styles.modalInput, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border, fontFamily: Fonts.regular }]}
               placeholder="Snack Name"
-              placeholderTextColor={Colors.textLight}
+              placeholderTextColor={colors.textLight}
               value={name}
               onChangeText={setName}
             />
             <TextInput
-              style={[styles.modalInput, styles.textArea]}
+              style={[styles.modalInput, styles.textArea, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border, fontFamily: Fonts.regular }]}
               placeholder="Description (optional)"
-              placeholderTextColor={Colors.textLight}
+              placeholderTextColor={colors.textLight}
               value={description}
               onChangeText={setDescription}
               multiline
             />
             <TextInput
-              style={styles.modalInput}
+              style={[styles.modalInput, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border, fontFamily: Fonts.regular }]}
               placeholder="Price (0 for free)"
-              placeholderTextColor={Colors.textLight}
+              placeholderTextColor={colors.textLight}
               value={snackPrice}
               onChangeText={setSnackPrice}
               keyboardType="numeric"
             />
             <View style={styles.availableRow}>
-              <Text style={styles.availableLabel}>Available</Text>
+              <Text style={[styles.availableLabel, { color: colors.text, fontFamily: Fonts.medium }]}>Available</Text>
               <Switch
                 value={available}
                 onValueChange={setAvailable}
-                trackColor={{ false: Colors.border, true: Colors.primaryLight }}
-                thumbColor={available ? Colors.primary : Colors.textLight}
+                trackColor={{ false: colors.border, true: colors.primaryLight }}
+                thumbColor={available ? colors.primary : colors.textLight}
               />
             </View>
-            <TouchableOpacity style={styles.modalButton} onPress={handleCreate}>
-              <Text style={styles.modalButtonText}>Add Snack</Text>
+            <TouchableOpacity style={[styles.modalButton, { backgroundColor: colors.primary }]} onPress={handleCreate}>
+              <Text style={[styles.modalButtonText, { color: colors.white, fontFamily: Fonts.semiBold }]}>Add Snack</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -250,7 +255,6 @@ export default function SnacksScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.surface,
   },
   venueSelector: {
     paddingHorizontal: 16,
@@ -260,28 +264,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: Colors.white,
     borderWidth: 1,
-    borderColor: Colors.border,
     marginRight: 8,
   },
   venueChipActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
   },
   venueChipText: {
     fontSize: 14,
-    color: Colors.text,
-    fontWeight: '500',
   },
   venueChipTextActive: {
-    color: Colors.white,
   },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.primary,
     marginHorizontal: 16,
     marginBottom: 16,
     paddingVertical: 14,
@@ -290,17 +286,13 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: Colors.white,
   },
   snackCard: {
-    backgroundColor: Colors.white,
     marginHorizontal: 16,
     marginBottom: 8,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: Colors.border,
   },
   snackRow: {
     flexDirection: 'row',
@@ -311,18 +303,13 @@ const styles = StyleSheet.create({
   },
   snackName: {
     fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text,
   },
   snackDesc: {
     fontSize: 13,
-    color: Colors.textSecondary,
     marginTop: 4,
   },
   snackPrice: {
     fontSize: 13,
-    color: Colors.primary,
-    fontWeight: '500',
     marginTop: 6,
   },
   snackActions: {
@@ -335,23 +322,18 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: Colors.text,
     marginTop: 12,
   },
   emptyText: {
     fontSize: 14,
-    color: Colors.textSecondary,
     marginTop: 8,
     textAlign: 'center',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: Colors.overlay,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: Colors.white,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 24,
@@ -364,18 +346,13 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    color: Colors.text,
   },
   modalInput: {
-    backgroundColor: Colors.surface,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    color: Colors.text,
     borderWidth: 1,
-    borderColor: Colors.border,
     marginBottom: 12,
   },
   textArea: {
@@ -390,19 +367,14 @@ const styles = StyleSheet.create({
   },
   availableLabel: {
     fontSize: 16,
-    fontWeight: '500',
-    color: Colors.text,
   },
   modalButton: {
-    backgroundColor: Colors.primary,
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
   },
   modalButtonText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: Colors.white,
   },
   bottomSpacer: {
     height: 40,

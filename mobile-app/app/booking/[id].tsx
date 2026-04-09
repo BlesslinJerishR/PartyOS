@@ -10,19 +10,20 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { api } from '../../services/api';
-import Colors from '../../constants/Colors';
+import { useTheme } from '../../context/AuthContext';
+import { Fonts } from '../../constants/Fonts';
 import { Show, Seat, Ticket } from '../../types';
 import { SEAT_TYPE_LABELS, SEAT_CAPACITIES } from '../../types';
 import { Check, X } from 'lucide-react-native';
 
 const SEAT_COLORS: Record<string, string> = {
-  CHAIR: '#0984E3',
-  SINGLE_SOFA: '#00B894',
-  RECLINER: '#6C5CE7',
-  THREE_SEATER_SOFA: '#FDCB6E',
-  BED_SINGLE: '#E17055',
-  BED_DOUBLE: '#D63031',
-  BED_TRIPLE: '#B71C1C',
+  CHAIR: '#FF004F',
+  SINGLE_SOFA: '#FF004F',
+  RECLINER: '#FF004F',
+  THREE_SEATER_SOFA: '#FF004F',
+  BED_SINGLE: '#FF004F',
+  BED_DOUBLE: '#FF004F',
+  BED_TRIPLE: '#FF004F',
 };
 
 export default function BookingScreen() {
@@ -34,6 +35,7 @@ export default function BookingScreen() {
   const [selectedSeatId, setSelectedSeatId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [booking, setBooking] = useState(false);
+  const { colors } = useTheme();
 
   const loadData = useCallback(async () => {
     if (!id) return;
@@ -83,8 +85,8 @@ export default function BookingScreen() {
 
   if (loading || !show) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+      <View style={[styles.center, { backgroundColor: colors.surface }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -97,14 +99,14 @@ export default function BookingScreen() {
   const selectedSeat = seats.find((s) => s.id === selectedSeatId);
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.surface }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>{show.movieTitle}</Text>
-        <Text style={styles.subtitle}>Select a seat to book</Text>
+        <Text style={[styles.title, { color: colors.text, fontFamily: Fonts.hero }]}>{show.movieTitle}</Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>Select a seat to book</Text>
       </View>
 
-      <View style={styles.screen}>
-        <Text style={styles.screenText}>SCREEN</Text>
+      <View style={[styles.screen, { backgroundColor: colors.text }]}>
+        <Text style={[styles.screenText, { color: colors.white, fontFamily: Fonts.semiBold }]}>SCREEN</Text>
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -118,7 +120,7 @@ export default function BookingScreen() {
                 }
                 const isBooked = bookedSeatIds.has(seat.id);
                 const isSelected = selectedSeatId === seat.id;
-                const color = SEAT_COLORS[seat.type] || Colors.textLight;
+                const color = SEAT_COLORS[seat.type] || colors.textLight;
 
                 return (
                   <TouchableOpacity
@@ -127,12 +129,12 @@ export default function BookingScreen() {
                       styles.seatCell,
                       {
                         backgroundColor: isBooked
-                          ? Colors.surfaceAlt
+                          ? colors.surfaceAlt
                           : isSelected
                           ? color
                           : color + '30',
                         borderColor: isBooked
-                          ? Colors.border
+                          ? colors.border
                           : color,
                       },
                     ]}
@@ -140,9 +142,9 @@ export default function BookingScreen() {
                     onPress={() => setSelectedSeatId(seat.id)}
                   >
                     {isBooked ? (
-                      <X size={12} color={Colors.textLight} strokeWidth={2} />
+                      <X size={12} color={colors.textLight} strokeWidth={2} />
                     ) : isSelected ? (
-                      <Check size={12} color={Colors.white} strokeWidth={2} />
+                      <Check size={12} color={colors.white} strokeWidth={2} />
                     ) : (
                       <Text style={[styles.seatLabel, { color }]}>
                         {seat.label}
@@ -158,34 +160,34 @@ export default function BookingScreen() {
 
       <View style={styles.legend}>
         <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: Colors.textLight }]} />
-          <Text style={styles.legendText}>Booked</Text>
+          <View style={[styles.legendDot, { backgroundColor: colors.textLight }]} />
+          <Text style={[styles.legendText, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>Booked</Text>
         </View>
         <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: Colors.primary }]} />
-          <Text style={styles.legendText}>Selected</Text>
+          <View style={[styles.legendDot, { backgroundColor: colors.primary }]} />
+          <Text style={[styles.legendText, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>Selected</Text>
         </View>
         <View style={styles.legendItem}>
           <View
             style={[
               styles.legendDot,
-              { backgroundColor: Colors.primary + '30', borderWidth: 1, borderColor: Colors.primary },
+              { backgroundColor: colors.primary + '30', borderWidth: 1, borderColor: colors.primary },
             ]}
           />
-          <Text style={styles.legendText}>Available</Text>
+          <Text style={[styles.legendText, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>Available</Text>
         </View>
       </View>
 
       {selectedSeat && (
-        <View style={styles.selectionCard}>
-          <Text style={styles.selectionLabel}>Selected Seat</Text>
-          <Text style={styles.selectionValue}>
+        <View style={[styles.selectionCard, { backgroundColor: colors.background, borderColor: colors.primary }]}>
+          <Text style={[styles.selectionLabel, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>Selected Seat</Text>
+          <Text style={[styles.selectionValue, { color: colors.text, fontFamily: Fonts.bold }]}>
             {selectedSeat.label} ({SEAT_TYPE_LABELS[selectedSeat.type]})
           </Text>
-          <Text style={styles.selectionCapacity}>
+          <Text style={[styles.selectionCapacity, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>
             Fits {SEAT_CAPACITIES[selectedSeat.type]} person(s)
           </Text>
-          <Text style={styles.selectionPrice}>
+          <Text style={[styles.selectionPrice, { color: colors.primary, fontFamily: Fonts.semiBold }]}>
             {show.isFree ? 'Free Entry' : `Price: ${show.price}`}
           </Text>
         </View>
@@ -194,12 +196,13 @@ export default function BookingScreen() {
       <TouchableOpacity
         style={[
           styles.bookButton,
+          { backgroundColor: colors.primary },
           (!selectedSeatId || booking) && styles.bookButtonDisabled,
         ]}
         onPress={handleBook}
         disabled={!selectedSeatId || booking}
       >
-        <Text style={styles.bookButtonText}>
+        <Text style={[styles.bookButtonText, { color: colors.white, fontFamily: Fonts.bold }]}>
           {booking ? 'Booking...' : 'Confirm Booking'}
         </Text>
       </TouchableOpacity>
@@ -212,39 +215,31 @@ export default function BookingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.surface,
   },
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.surface,
   },
   header: {
     padding: 20,
   },
   title: {
     fontSize: 22,
-    fontWeight: '700',
-    color: Colors.text,
   },
   subtitle: {
     fontSize: 14,
-    color: Colors.textSecondary,
     marginTop: 4,
   },
   screen: {
     marginHorizontal: 40,
     paddingVertical: 8,
-    backgroundColor: Colors.text,
     borderRadius: 4,
     alignItems: 'center',
     marginBottom: 20,
   },
   screenText: {
     fontSize: 12,
-    fontWeight: '600',
-    color: Colors.white,
     letterSpacing: 2,
   },
   grid: {
@@ -271,7 +266,6 @@ const styles = StyleSheet.create({
   },
   seatLabel: {
     fontSize: 8,
-    fontWeight: '700',
   },
   legend: {
     flexDirection: 'row',
@@ -291,39 +285,29 @@ const styles = StyleSheet.create({
   },
   legendText: {
     fontSize: 12,
-    color: Colors.textSecondary,
   },
   selectionCard: {
-    backgroundColor: Colors.white,
     marginHorizontal: 16,
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: Colors.primary,
   },
   selectionLabel: {
     fontSize: 12,
-    color: Colors.textSecondary,
     marginBottom: 4,
   },
   selectionValue: {
     fontSize: 18,
-    fontWeight: '700',
-    color: Colors.text,
   },
   selectionCapacity: {
     fontSize: 13,
-    color: Colors.textSecondary,
     marginTop: 4,
   },
   selectionPrice: {
     fontSize: 16,
-    fontWeight: '600',
-    color: Colors.primary,
     marginTop: 8,
   },
   bookButton: {
-    backgroundColor: Colors.primary,
     marginHorizontal: 16,
     marginTop: 16,
     paddingVertical: 16,
@@ -335,8 +319,6 @@ const styles = StyleSheet.create({
   },
   bookButtonText: {
     fontSize: 18,
-    fontWeight: '700',
-    color: Colors.white,
   },
   bottomSpacer: {
     height: 40,

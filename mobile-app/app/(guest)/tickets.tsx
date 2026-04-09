@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { api } from '../../services/api';
-import Colors from '../../constants/Colors';
+import { useTheme } from '../../context/AuthContext';
+import { Fonts } from '../../constants/Fonts';
 import { Ticket } from '../../types';
 import { Calendar, Clock, MapPin, XCircle, TicketCheck } from 'lucide-react-native';
 
@@ -18,6 +19,7 @@ export default function TicketsScreen() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
+  const { colors } = useTheme();
 
   const loadTickets = useCallback(async () => {
     try {
@@ -59,15 +61,15 @@ export default function TicketsScreen() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'BOOKED':
-        return Colors.upcoming;
+        return colors.upcoming;
       case 'CHECKED_IN':
-        return Colors.nowPlaying;
+        return colors.nowPlaying;
       case 'COMPLETED':
-        return Colors.success;
+        return colors.success;
       case 'CANCELLED':
-        return Colors.error;
+        return colors.error;
       default:
-        return Colors.textSecondary;
+        return colors.textSecondary;
     }
   };
 
@@ -80,32 +82,32 @@ export default function TicketsScreen() {
 
   return (
     <ScrollView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.surface }]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
-      <Text style={styles.heading}>My Tickets</Text>
+      <Text style={[styles.heading, { color: colors.text, fontFamily: Fonts.hero }]}>My Tickets</Text>
 
       {active.length > 0 && (
-        <Text style={styles.sectionTitle}>Active</Text>
+        <Text style={[styles.sectionTitle, { color: colors.textSecondary, fontFamily: Fonts.semiBold }]}>Active</Text>
       )}
       {active.map((ticket) => (
-        <View key={ticket.id} style={styles.ticketCard}>
+        <View key={ticket.id} style={[styles.ticketCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.ticketTop}>
             <View style={styles.ticketInfo}>
-              <Text style={styles.movieTitle}>
+              <Text style={[styles.movieTitle, { color: colors.text, fontFamily: Fonts.semiBold }]}>
                 {ticket.show?.movieTitle || 'Show'}
               </Text>
               {ticket.show && (
                 <>
                   <View style={styles.metaRow}>
-                    <Calendar size={14} color={Colors.textSecondary} strokeWidth={1.8} />
-                    <Text style={styles.metaText}>
+                    <Calendar size={14} color={colors.textSecondary} strokeWidth={1.8} />
+                    <Text style={[styles.metaText, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>
                       {new Date(ticket.show.startTime).toLocaleDateString()}
                     </Text>
                   </View>
                   <View style={styles.metaRow}>
-                    <Clock size={14} color={Colors.textSecondary} strokeWidth={1.8} />
-                    <Text style={styles.metaText}>
+                    <Clock size={14} color={colors.textSecondary} strokeWidth={1.8} />
+                    <Text style={[styles.metaText, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>
                       {new Date(ticket.show.startTime).toLocaleTimeString([], {
                         hour: '2-digit',
                         minute: '2-digit',
@@ -115,7 +117,7 @@ export default function TicketsScreen() {
                 </>
               )}
               {ticket.seat && (
-                <Text style={styles.seatLabel}>
+                <Text style={[styles.seatLabel, { color: colors.primary, fontFamily: Fonts.medium }]}>
                   Seat: {ticket.seat.label}
                 </Text>
               )}
@@ -139,22 +141,22 @@ export default function TicketsScreen() {
             </View>
           </View>
           {ticket.status === 'BOOKED' && (
-            <View style={styles.ticketActions}>
+            <View style={[styles.ticketActions, { borderTopColor: colors.border }]}>
               <TouchableOpacity
                 style={styles.cancelTicketBtn}
                 onPress={() => handleCancel(ticket.id)}
               >
-                <XCircle size={16} color={Colors.error} strokeWidth={1.8} />
-                <Text style={styles.cancelTicketText}>Cancel</Text>
+                <XCircle size={16} color={colors.error} strokeWidth={1.8} />
+                <Text style={[styles.cancelTicketText, { color: colors.error }]}>Cancel</Text>
               </TouchableOpacity>
             </View>
           )}
           {ticket.status === 'COMPLETED' && !ticket.show?.isFree && (
             <TouchableOpacity
-              style={styles.reviewBtn}
+              style={[styles.reviewBtn, { borderTopColor: colors.border }]}
               onPress={() => router.push(`/review/${ticket.id}`)}
             >
-              <Text style={styles.reviewBtnText}>Write Review</Text>
+              <Text style={[styles.reviewBtnText, { color: colors.primary, fontFamily: Fonts.semiBold }]}>Write Review</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -162,16 +164,16 @@ export default function TicketsScreen() {
 
       {past.length > 0 && (
         <>
-          <Text style={styles.sectionTitle}>History</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textSecondary, fontFamily: Fonts.semiBold }]}>History</Text>
           {past.map((ticket) => (
-            <View key={ticket.id} style={[styles.ticketCard, styles.pastCard]}>
+            <View key={ticket.id} style={[styles.ticketCard, styles.pastCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <View style={styles.ticketTop}>
                 <View style={styles.ticketInfo}>
-                  <Text style={styles.movieTitle}>
+                  <Text style={[styles.movieTitle, { color: colors.text, fontFamily: Fonts.semiBold }]}>
                     {ticket.show?.movieTitle || 'Show'}
                   </Text>
                   {ticket.show && (
-                    <Text style={styles.metaText}>
+                    <Text style={[styles.metaText, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>
                       {new Date(ticket.show.startTime).toLocaleDateString()}
                     </Text>
                   )}
@@ -194,10 +196,10 @@ export default function TicketsScreen() {
               </View>
               {ticket.status === 'COMPLETED' && (
                 <TouchableOpacity
-                  style={styles.reviewBtn}
+                  style={[styles.reviewBtn, { borderTopColor: colors.border }]}
                   onPress={() => router.push(`/review/${ticket.id}`)}
                 >
-                  <Text style={styles.reviewBtnText}>Write Review</Text>
+                  <Text style={[styles.reviewBtnText, { color: colors.primary, fontFamily: Fonts.semiBold }]}>Write Review</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -207,9 +209,9 @@ export default function TicketsScreen() {
 
       {tickets.length === 0 && (
         <View style={styles.emptyState}>
-          <TicketCheck size={40} color={Colors.textLight} strokeWidth={1.5} />
-          <Text style={styles.emptyTitle}>No Tickets Yet</Text>
-          <Text style={styles.emptyText}>
+          <TicketCheck size={40} color={colors.textLight} strokeWidth={1.5} />
+          <Text style={[styles.emptyTitle, { color: colors.text, fontFamily: Fonts.semiBold }]}>No Tickets Yet</Text>
+          <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>
             Book a show to see your tickets here
           </Text>
         </View>
@@ -223,31 +225,24 @@ export default function TicketsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.surface,
   },
   heading: {
     fontSize: 24,
-    fontWeight: '700',
-    color: Colors.text,
     paddingHorizontal: 16,
     paddingTop: 20,
     paddingBottom: 8,
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: Colors.textSecondary,
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
   ticketCard: {
-    backgroundColor: Colors.white,
     marginHorizontal: 16,
     marginBottom: 10,
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: Colors.border,
   },
   pastCard: {
     opacity: 0.7,
@@ -261,8 +256,6 @@ const styles = StyleSheet.create({
   },
   movieTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text,
     marginBottom: 6,
   },
   metaRow: {
@@ -273,12 +266,9 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 13,
-    color: Colors.textSecondary,
   },
   seatLabel: {
     fontSize: 13,
-    fontWeight: '500',
-    color: Colors.primary,
     marginTop: 4,
   },
   statusColumn: {
@@ -291,11 +281,9 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 11,
-    fontWeight: '700',
   },
   ticketActions: {
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
     marginTop: 12,
     paddingTop: 12,
     flexDirection: 'row',
@@ -308,20 +296,15 @@ const styles = StyleSheet.create({
   },
   cancelTicketText: {
     fontSize: 14,
-    color: Colors.error,
-    fontWeight: '500',
   },
   reviewBtn: {
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
     marginTop: 12,
     paddingTop: 12,
     alignItems: 'center',
   },
   reviewBtnText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: Colors.primary,
   },
   emptyState: {
     alignItems: 'center',
@@ -329,13 +312,10 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: Colors.text,
     marginTop: 12,
   },
   emptyText: {
     fontSize: 14,
-    color: Colors.textSecondary,
     marginTop: 8,
   },
   bottomSpacer: {

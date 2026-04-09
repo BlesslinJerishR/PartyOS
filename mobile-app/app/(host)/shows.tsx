@@ -12,7 +12,8 @@ import {
   Image,
 } from 'react-native';
 import { api } from '../../services/api';
-import Colors from '../../constants/Colors';
+import { useTheme } from '../../context/AuthContext';
+import { Fonts } from '../../constants/Fonts';
 import { Show, Venue, TMDBMovie, TMDBResponse } from '../../types';
 import { Plus, Search, X, Calendar, Clock } from 'lucide-react-native';
 
@@ -32,6 +33,7 @@ export default function ShowsScreen() {
   const [endTime, setEndTime] = useState('');
   const [isFree, setIsFree] = useState(true);
   const [price, setPrice] = useState('');
+  const { colors } = useTheme();
 
   const loadData = useCallback(async () => {
     try {
@@ -129,19 +131,19 @@ export default function ShowsScreen() {
 
   return (
     <ScrollView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.surface }]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
       <TouchableOpacity
-        style={styles.createButton}
+        style={[styles.createButton, { backgroundColor: colors.primary }]}
         onPress={() => setShowCreate(true)}
       >
-        <Plus size={20} color={Colors.white} strokeWidth={2} />
-        <Text style={styles.createButtonText}>Schedule New Show</Text>
+        <Plus size={20} color={colors.white} strokeWidth={2} />
+        <Text style={[styles.createButtonText, { color: colors.white, fontFamily: Fonts.semiBold }]}>Schedule New Show</Text>
       </TouchableOpacity>
 
       {shows.map((show) => (
-        <View key={show.id} style={styles.showCard}>
+        <View key={show.id} style={[styles.showCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
           <View style={styles.showCardRow}>
             {show.moviePoster && (
               <Image
@@ -150,16 +152,16 @@ export default function ShowsScreen() {
               />
             )}
             <View style={styles.showInfo}>
-              <Text style={styles.showTitle}>{show.movieTitle}</Text>
+              <Text style={[styles.showTitle, { color: colors.text, fontFamily: Fonts.semiBold }]}>{show.movieTitle}</Text>
               <View style={styles.showMeta}>
-                <Calendar size={14} color={Colors.textSecondary} strokeWidth={1.8} />
-                <Text style={styles.showMetaText}>
+                <Calendar size={14} color={colors.textSecondary} strokeWidth={1.8} />
+                <Text style={[styles.showMetaText, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>
                   {new Date(show.startTime).toLocaleDateString()}
                 </Text>
               </View>
               <View style={styles.showMeta}>
-                <Clock size={14} color={Colors.textSecondary} strokeWidth={1.8} />
-                <Text style={styles.showMetaText}>
+                <Clock size={14} color={colors.textSecondary} strokeWidth={1.8} />
+                <Text style={[styles.showMetaText, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>
                   {new Date(show.startTime).toLocaleTimeString([], {
                     hour: '2-digit',
                     minute: '2-digit',
@@ -170,7 +172,7 @@ export default function ShowsScreen() {
                   })}
                 </Text>
               </View>
-              <Text style={styles.showPriceInfo}>
+              <Text style={[styles.showPriceInfo, { color: colors.primary, fontFamily: Fonts.medium }]}>
                 {show.isFree ? 'Free Entry' : `Price: ${show.price}`}
               </Text>
             </View>
@@ -181,24 +183,24 @@ export default function ShowsScreen() {
                   {
                     backgroundColor:
                       show.status === 'NOW_PLAYING'
-                        ? Colors.nowPlaying
+                        ? colors.nowPlaying
                         : show.status === 'SCHEDULED'
-                        ? Colors.upcoming
+                        ? colors.upcoming
                         : show.status === 'COMPLETED'
-                        ? Colors.success
-                        : Colors.error,
+                        ? colors.success
+                        : colors.error,
                   },
                 ]}
               />
-              <Text style={styles.statusLabel}>{show.status.replace('_', ' ')}</Text>
+              <Text style={[styles.statusLabel, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>{show.status.replace('_', ' ')}</Text>
             </View>
           </View>
           {(show.status === 'SCHEDULED' || show.status === 'NOW_PLAYING') && (
             <TouchableOpacity
-              style={styles.cancelBtn}
+              style={[styles.cancelBtn, { borderTopColor: colors.border }]}
               onPress={() => handleCancelShow(show.id)}
             >
-              <Text style={styles.cancelBtnText}>Cancel Show</Text>
+              <Text style={[styles.cancelBtnText, { color: colors.error, fontFamily: Fonts.medium }]}>Cancel Show</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -206,41 +208,41 @@ export default function ShowsScreen() {
 
       {shows.length === 0 && (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyTitle}>No Shows Scheduled</Text>
-          <Text style={styles.emptyText}>
+          <Text style={[styles.emptyTitle, { color: colors.text, fontFamily: Fonts.semiBold }]}>No Shows Scheduled</Text>
+          <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>
             Tap the button above to schedule your first movie show
           </Text>
         </View>
       )}
 
       <Modal visible={showCreate} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <ScrollView style={styles.modalContent}>
+        <View style={[styles.modalOverlay, { backgroundColor: colors.overlay }]}>
+          <ScrollView style={[styles.modalContent, { backgroundColor: colors.background }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Schedule Show</Text>
+              <Text style={[styles.modalTitle, { color: colors.text, fontFamily: Fonts.bold }]}>Schedule Show</Text>
               <TouchableOpacity onPress={() => { setShowCreate(false); resetForm(); }}>
-                <X size={24} color={Colors.text} strokeWidth={1.8} />
+                <X size={24} color={colors.text} strokeWidth={1.8} />
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.fieldLabel}>Search Movie</Text>
+            <Text style={[styles.fieldLabel, { color: colors.text, fontFamily: Fonts.semiBold }]}>Search Movie</Text>
             <View style={styles.searchRow}>
               <TextInput
-                style={styles.searchInput}
+                style={[styles.searchInput, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border, fontFamily: Fonts.regular }]}
                 placeholder="Search for a movie"
-                placeholderTextColor={Colors.textLight}
+                placeholderTextColor={colors.textLight}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 onSubmitEditing={searchMovies}
               />
-              <TouchableOpacity style={styles.searchBtn} onPress={searchMovies}>
-                <Search size={20} color={Colors.white} strokeWidth={2} />
+              <TouchableOpacity style={[styles.searchBtn, { backgroundColor: colors.primary }]} onPress={searchMovies}>
+                <Search size={20} color={colors.white} strokeWidth={2} />
               </TouchableOpacity>
             </View>
 
             {selectedMovie && (
-              <View style={styles.selectedMovieCard}>
-                <Text style={styles.selectedMovieTitle}>
+              <View style={[styles.selectedMovieCard, { backgroundColor: colors.surface, borderColor: colors.primary }]}>
+                <Text style={[styles.selectedMovieTitle, { color: colors.primary, fontFamily: Fonts.semiBold }]}>
                   Selected: {selectedMovie.title}
                 </Text>
               </View>
@@ -263,7 +265,7 @@ export default function ShowsScreen() {
                         style={styles.moviePoster}
                       />
                     )}
-                    <Text style={styles.movieOptionTitle} numberOfLines={2}>
+                    <Text style={[styles.movieOptionTitle, { color: colors.text, fontFamily: Fonts.regular }]} numberOfLines={2}>
                       {movie.title}
                     </Text>
                   </TouchableOpacity>
@@ -271,21 +273,25 @@ export default function ShowsScreen() {
               </ScrollView>
             )}
 
-            <Text style={styles.fieldLabel}>Select Venue</Text>
+            <Text style={[styles.fieldLabel, { color: colors.text, fontFamily: Fonts.semiBold }]}>Select Venue</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.venueList}>
               {venues.map((venue) => (
                 <TouchableOpacity
                   key={venue.id}
                   style={[
                     styles.venueOption,
+                    { backgroundColor: colors.surfaceAlt },
                     selectedVenueId === venue.id && styles.venueOptionActive,
+                    selectedVenueId === venue.id && { backgroundColor: colors.primary },
                   ]}
                   onPress={() => setSelectedVenueId(venue.id)}
                 >
                   <Text
                     style={[
                       styles.venueOptionText,
+                      { color: colors.text, fontFamily: Fonts.medium },
                       selectedVenueId === venue.id && styles.venueOptionTextActive,
+                      selectedVenueId === venue.id && { color: colors.white },
                     ]}
                   >
                     {venue.name}
@@ -294,67 +300,67 @@ export default function ShowsScreen() {
               ))}
             </ScrollView>
 
-            <Text style={styles.fieldLabel}>Date (YYYY MM DD)</Text>
+            <Text style={[styles.fieldLabel, { color: colors.text, fontFamily: Fonts.semiBold }]}>Date (YYYY MM DD)</Text>
             <TextInput
-              style={styles.modalInput}
+              style={[styles.modalInput, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border, fontFamily: Fonts.regular }]}
               placeholder="2026 04 15"
-              placeholderTextColor={Colors.textLight}
+              placeholderTextColor={colors.textLight}
               value={startDate}
               onChangeText={setStartDate}
             />
 
             <View style={styles.rowInputs}>
               <View style={styles.halfInput}>
-                <Text style={styles.fieldLabel}>Start Time</Text>
+                <Text style={[styles.fieldLabel, { color: colors.text, fontFamily: Fonts.semiBold }]}>Start Time</Text>
                 <TextInput
-                  style={styles.modalInput}
+                  style={[styles.modalInput, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border, fontFamily: Fonts.regular }]}
                   placeholder="18:00"
-                  placeholderTextColor={Colors.textLight}
+                  placeholderTextColor={colors.textLight}
                   value={startTime}
                   onChangeText={setStartTime}
                 />
               </View>
               <View style={styles.halfInput}>
-                <Text style={styles.fieldLabel}>End Time</Text>
+                <Text style={[styles.fieldLabel, { color: colors.text, fontFamily: Fonts.semiBold }]}>End Time</Text>
                 <TextInput
-                  style={styles.modalInput}
+                  style={[styles.modalInput, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border, fontFamily: Fonts.regular }]}
                   placeholder="20:30"
-                  placeholderTextColor={Colors.textLight}
+                  placeholderTextColor={colors.textLight}
                   value={endTime}
                   onChangeText={setEndTime}
                 />
               </View>
             </View>
 
-            <Text style={styles.fieldLabel}>Pricing</Text>
+            <Text style={[styles.fieldLabel, { color: colors.text, fontFamily: Fonts.semiBold }]}>Pricing</Text>
             <View style={styles.pricingRow}>
               <TouchableOpacity
-                style={[styles.pricingOption, isFree && styles.pricingActive]}
+                style={[styles.pricingOption, { borderColor: colors.border }, isFree && styles.pricingActive, isFree && { backgroundColor: colors.primary, borderColor: colors.primary }]}
                 onPress={() => setIsFree(true)}
               >
-                <Text style={[styles.pricingText, isFree && styles.pricingTextActive]}>Free</Text>
+                <Text style={[styles.pricingText, { color: colors.text, fontFamily: Fonts.semiBold }, isFree && styles.pricingTextActive, isFree && { color: colors.white }]}>Free</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.pricingOption, !isFree && styles.pricingActive]}
+                style={[styles.pricingOption, { borderColor: colors.border }, !isFree && styles.pricingActive, !isFree && { backgroundColor: colors.primary, borderColor: colors.primary }]}
                 onPress={() => setIsFree(false)}
               >
-                <Text style={[styles.pricingText, !isFree && styles.pricingTextActive]}>Paid</Text>
+                <Text style={[styles.pricingText, { color: colors.text, fontFamily: Fonts.semiBold }, !isFree && styles.pricingTextActive, !isFree && { color: colors.white }]}>Paid</Text>
               </TouchableOpacity>
             </View>
 
             {!isFree && (
               <TextInput
-                style={styles.modalInput}
+                style={[styles.modalInput, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border, fontFamily: Fonts.regular }]}
                 placeholder="Price per ticket"
-                placeholderTextColor={Colors.textLight}
+                placeholderTextColor={colors.textLight}
                 value={price}
                 onChangeText={setPrice}
                 keyboardType="numeric"
               />
             )}
 
-            <TouchableOpacity style={styles.modalButton} onPress={handleCreateShow}>
-              <Text style={styles.modalButtonText}>Schedule Show</Text>
+            <TouchableOpacity style={[styles.modalButton, { backgroundColor: colors.primary }]} onPress={handleCreateShow}>
+              <Text style={[styles.modalButtonText, { color: colors.white, fontFamily: Fonts.semiBold }]}>Schedule Show</Text>
             </TouchableOpacity>
 
             <View style={styles.bottomSpacer} />
@@ -370,13 +376,11 @@ export default function ShowsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.surface,
   },
   createButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.primary,
     margin: 16,
     paddingVertical: 14,
     borderRadius: 12,
@@ -384,17 +388,13 @@ const styles = StyleSheet.create({
   },
   createButtonText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: Colors.white,
   },
   showCard: {
-    backgroundColor: Colors.white,
     marginHorizontal: 16,
     marginBottom: 12,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: Colors.border,
   },
   showCardRow: {
     flexDirection: 'row',
@@ -410,8 +410,6 @@ const styles = StyleSheet.create({
   },
   showTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text,
     marginBottom: 6,
   },
   showMeta: {
@@ -422,12 +420,9 @@ const styles = StyleSheet.create({
   },
   showMetaText: {
     fontSize: 13,
-    color: Colors.textSecondary,
   },
   showPriceInfo: {
     fontSize: 13,
-    color: Colors.primary,
-    fontWeight: '500',
     marginTop: 4,
   },
   showStatus: {
@@ -441,7 +436,6 @@ const styles = StyleSheet.create({
   },
   statusLabel: {
     fontSize: 10,
-    color: Colors.textSecondary,
     textTransform: 'capitalize',
   },
   cancelBtn: {
@@ -449,12 +443,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
   },
   cancelBtnText: {
     fontSize: 14,
-    color: Colors.error,
-    fontWeight: '500',
   },
   emptyState: {
     alignItems: 'center',
@@ -462,21 +453,16 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: Colors.text,
   },
   emptyText: {
     fontSize: 14,
-    color: Colors.textSecondary,
     marginTop: 8,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: Colors.overlay,
   },
   modalContent: {
     flex: 1,
-    backgroundColor: Colors.white,
     marginTop: 60,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
@@ -490,13 +476,9 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    color: Colors.text,
   },
   fieldLabel: {
     fontSize: 14,
-    fontWeight: '600',
-    color: Colors.text,
     marginBottom: 8,
     marginTop: 4,
   },
@@ -507,33 +489,25 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    backgroundColor: Colors.surface,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    color: Colors.text,
     borderWidth: 1,
-    borderColor: Colors.border,
   },
   searchBtn: {
-    backgroundColor: Colors.primary,
     borderRadius: 12,
     paddingHorizontal: 16,
     justifyContent: 'center',
   },
   selectedMovieCard: {
-    backgroundColor: Colors.surface,
     borderRadius: 12,
     padding: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: Colors.primary,
   },
   selectedMovieTitle: {
     fontSize: 14,
-    fontWeight: '600',
-    color: Colors.primary,
   },
   movieList: {
     marginBottom: 16,
@@ -550,7 +524,6 @@ const styles = StyleSheet.create({
   },
   movieOptionTitle: {
     fontSize: 12,
-    color: Colors.text,
     textAlign: 'center',
     marginTop: 4,
   },
@@ -561,29 +534,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 12,
-    backgroundColor: Colors.surfaceAlt,
     marginRight: 8,
   },
   venueOptionActive: {
-    backgroundColor: Colors.primary,
   },
   venueOptionText: {
     fontSize: 14,
-    color: Colors.text,
-    fontWeight: '500',
   },
   venueOptionTextActive: {
-    color: Colors.white,
   },
   modalInput: {
-    backgroundColor: Colors.surface,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    color: Colors.text,
     borderWidth: 1,
-    borderColor: Colors.border,
     marginBottom: 12,
   },
   rowInputs: {
@@ -603,23 +568,16 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
     alignItems: 'center',
   },
   pricingActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
   },
   pricingText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: Colors.text,
   },
   pricingTextActive: {
-    color: Colors.white,
   },
   modalButton: {
-    backgroundColor: Colors.primary,
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
@@ -627,8 +585,6 @@ const styles = StyleSheet.create({
   },
   modalButtonText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: Colors.white,
   },
   bottomSpacer: {
     height: 40,

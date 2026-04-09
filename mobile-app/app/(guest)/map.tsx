@@ -9,7 +9,8 @@ import {
 import * as Location from 'expo-location';
 import { WebView } from 'react-native-webview';
 import { api } from '../../services/api';
-import Colors from '../../constants/Colors';
+import { useTheme } from '../../context/AuthContext';
+import { Fonts } from '../../constants/Fonts';
 import { MapMarker } from '../../types';
 
 export default function MapScreen() {
@@ -17,6 +18,7 @@ export default function MapScreen() {
   const [userLat, setUserLat] = useState<number | null>(null);
   const [userLng, setUserLng] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const { colors, isDark } = useTheme();
 
   const loadMapData = useCallback(async () => {
     try {
@@ -48,9 +50,9 @@ export default function MapScreen() {
 
   if (loading || userLat === null || userLng === null) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Loading map...</Text>
+      <View style={[styles.center, { backgroundColor: colors.surface }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.loadingText, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>Loading map...</Text>
       </View>
     );
   }
@@ -67,9 +69,9 @@ export default function MapScreen() {
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body, #map { width: 100%; height: 100%; }
-    .leaflet-tile-pane { filter: grayscale(100%) invert(100%) contrast(1.2) brightness(0.96); }
+    ${isDark ? '.leaflet-tile-pane { filter: grayscale(100%) invert(100%) contrast(1.2) brightness(0.96); }' : ''}
     .leaflet-control-zoom a {
-      background: #1a1a2e !important;
+      background: ${colors.background} !important;
       color: #fff !important;
       border: 1px solid #333 !important;
     }
@@ -80,12 +82,12 @@ export default function MapScreen() {
     .marker-popup h3 {
       font-size: 14px;
       font-weight: 600;
-      color: #2D3436;
+      color: ${colors.text};
       margin-bottom: 4px;
     }
     .marker-popup p {
       font-size: 12px;
-      color: #636E72;
+      color: ${colors.textSecondary};
       margin: 2px 0;
     }
     .marker-popup .badge {
@@ -97,12 +99,12 @@ export default function MapScreen() {
       margin-top: 4px;
     }
     .badge-live {
-      background: #FFE8E3;
-      color: #E17055;
+      background: ${colors.primary}20;
+      color: ${colors.primary};
     }
     .badge-upcoming {
-      background: #E3F2FD;
-      color: #0984E3;
+      background: ${colors.primary}20;
+      color: ${colors.primary};
     }
   </style>
 </head>
@@ -121,7 +123,7 @@ export default function MapScreen() {
 
     var userIcon = L.divIcon({
       className: 'user-marker',
-      html: '<div style="width:14px;height:14px;background:#6C5CE7;border-radius:50%;border:3px solid #fff;box-shadow:0 0 8px rgba(108,92,231,0.6);"></div>',
+      html: '<div style="width:14px;height:14px;background:${colors.primary};border-radius:50%;border:3px solid #fff;box-shadow:0 0 8px ${colors.primary}99;"></div>',
       iconSize: [14, 14],
       iconAnchor: [7, 7],
     });
@@ -133,7 +135,7 @@ export default function MapScreen() {
     var markers = ${markersJson};
 
     function createIcon(status) {
-      var color = status === 'NOW_PLAYING' ? '#E17055' : '#0984E3';
+      var color = '${colors.primary}';
       return L.divIcon({
         className: 'show-marker',
         html: '<div style="width:12px;height:12px;background:' + color + ';border-radius:50%;border:2px solid #fff;box-shadow:0 0 6px rgba(0,0,0,0.3);"></div>',
@@ -179,7 +181,6 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a2e',
   },
   webview: {
     flex: 1,
@@ -188,11 +189,9 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.surface,
   },
   loadingText: {
     fontSize: 14,
-    color: Colors.textSecondary,
     marginTop: 12,
   },
 });

@@ -12,7 +12,8 @@ import {
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { api } from '../../services/api';
-import Colors from '../../constants/Colors';
+import { useTheme } from '../../context/AuthContext';
+import { Fonts } from '../../constants/Fonts';
 import { Show } from '../../types';
 import { MapPin, Clock, Users } from 'lucide-react-native';
 
@@ -21,6 +22,7 @@ export default function NowPlayingScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const { colors } = useTheme();
 
   const loadShows = useCallback(async () => {
     try {
@@ -55,22 +57,22 @@ export default function NowPlayingScreen() {
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.loadingText}>Finding shows near you...</Text>
+      <View style={[styles.center, { backgroundColor: colors.surface }]}>
+        <Text style={[styles.loadingText, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>Finding shows near you...</Text>
       </View>
     );
   }
 
   return (
     <ScrollView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.surface }]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
-      <Text style={styles.heading}>Playing Now</Text>
+      <Text style={[styles.heading, { color: colors.text, fontFamily: Fonts.hero }]}>Playing Now</Text>
       {shows.length === 0 ? (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyTitle}>No Shows Playing</Text>
-          <Text style={styles.emptyText}>
+          <Text style={[styles.emptyTitle, { color: colors.text, fontFamily: Fonts.semiBold }]}>No Shows Playing</Text>
+          <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>
             Check back later for live shows near you
           </Text>
         </View>
@@ -78,21 +80,21 @@ export default function NowPlayingScreen() {
         shows.map((show) => (
           <TouchableOpacity
             key={show.id}
-            style={styles.showCard}
+            style={[styles.showCard, { backgroundColor: colors.white, borderColor: colors.border }]}
             onPress={() => router.push(`/showdetail/${show.id}`)}
           >
             {show.moviePoster && (
               <Image source={{ uri: show.moviePoster }} style={styles.poster} />
             )}
             <View style={styles.showInfo}>
-              <View style={styles.liveBadge}>
-                <View style={styles.liveDot} />
-                <Text style={styles.liveText}>LIVE</Text>
+              <View style={[styles.liveBadge, { backgroundColor: colors.primary + '20' }]}>
+                <View style={[styles.liveDot, { backgroundColor: colors.nowPlaying }]} />
+                <Text style={[styles.liveText, { color: colors.nowPlaying, fontFamily: Fonts.semiBold }]}>LIVE</Text>
               </View>
-              <Text style={styles.movieTitle}>{show.movieTitle}</Text>
+              <Text style={[styles.movieTitle, { color: colors.text, fontFamily: Fonts.semiBold }]}>{show.movieTitle}</Text>
               <View style={styles.metaRow}>
-                <Clock size={14} color={Colors.textSecondary} strokeWidth={1.8} />
-                <Text style={styles.metaText}>
+                <Clock size={14} color={colors.textSecondary} strokeWidth={1.8} />
+                <Text style={[styles.metaText, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>
                   Ends{' '}
                   {new Date(show.endTime).toLocaleTimeString([], {
                     hour: '2-digit',
@@ -102,11 +104,11 @@ export default function NowPlayingScreen() {
               </View>
               {show.venue && (
                 <View style={styles.metaRow}>
-                  <MapPin size={14} color={Colors.textSecondary} strokeWidth={1.8} />
-                  <Text style={styles.metaText}>{show.venue.name}</Text>
+                  <MapPin size={14} color={colors.textSecondary} strokeWidth={1.8} />
+                  <Text style={[styles.metaText, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>{show.venue.name}</Text>
                 </View>
               )}
-              <Text style={styles.price}>
+              <Text style={[styles.price, { color: colors.primary, fontFamily: Fonts.semiBold }]}>
                 {show.isFree ? 'Free Entry' : `${show.price}`}
               </Text>
             </View>
@@ -121,35 +123,28 @@ export default function NowPlayingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.surface,
   },
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.surface,
   },
   loadingText: {
     fontSize: 16,
-    color: Colors.textSecondary,
   },
   heading: {
     fontSize: 24,
-    fontWeight: '700',
-    color: Colors.text,
     paddingHorizontal: 16,
     paddingTop: 20,
     paddingBottom: 16,
   },
   showCard: {
-    backgroundColor: Colors.white,
     marginHorizontal: 16,
     marginBottom: 12,
     borderRadius: 14,
     overflow: 'hidden',
     flexDirection: 'row',
     borderWidth: 1,
-    borderColor: Colors.border,
   },
   poster: {
     width: 100,
@@ -163,7 +158,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    backgroundColor: '#FFE8E3',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
@@ -174,17 +168,12 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: Colors.nowPlaying,
   },
   liveText: {
     fontSize: 11,
-    fontWeight: '700',
-    color: Colors.nowPlaying,
   },
   movieTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text,
     marginBottom: 8,
   },
   metaRow: {
@@ -195,12 +184,9 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 13,
-    color: Colors.textSecondary,
   },
   price: {
     fontSize: 14,
-    fontWeight: '600',
-    color: Colors.primary,
     marginTop: 6,
   },
   emptyState: {
@@ -209,12 +195,9 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: Colors.text,
   },
   emptyText: {
     fontSize: 14,
-    color: Colors.textSecondary,
     marginTop: 8,
   },
   bottomSpacer: {

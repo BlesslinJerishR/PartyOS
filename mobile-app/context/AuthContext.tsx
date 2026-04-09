@@ -1,7 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from '../services/api';
 import { storage } from '../services/storage';
 import { AuthResponse, UserRole } from '../types';
+import { DarkTheme, LightTheme, ThemeColors } from '../constants/Colors';
+
+const THEME_KEY = 'partyos_theme';
 
 interface AuthState {
   isLoading: boolean;
@@ -10,11 +14,17 @@ interface AuthState {
   token: string | null;
 }
 
-interface AuthContextValue extends AuthState {
+interface ThemeState {
+  isDark: boolean;
+  colors: ThemeColors;
+}
+
+interface AuthContextValue extends AuthState, ThemeState {
   login: (username: string, password: string) => Promise<void>;
   signup: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   setRole: (role: UserRole) => Promise<void>;
+  toggleTheme: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -27,8 +37,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     token: null,
   });
 
+  const [themeState, setThemeState] = useState<ThemeState>({
+    isDark: true,
+    colors: DarkTheme,
+  });
+
   useEffect(() => {
     loadStoredAuth();
+    loadStoredTheme();
   }, []);
 
   const loadStoredAuth = async () => {
@@ -46,6 +62,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setState((prev) => ({ ...prev, isLoading: false }));
     }
   };
+
+  const loadStoredTheme = async () => {
+    const val = await AsyncStorage.getItem(THEME_KEY);
+    if (val === 'light') {
+      setThemeState({ isDark: false, colors: LightTheme });
+    }
+  };
+
+  const toggleTheme = useCallback(() => {
+    setThemeState((prev) => {
+      const next = !prev.isDark;
+      AsyncStorage.setItem(THEME_KEY, next ? 'dark' : 'light');
+      return { isDark: next, colors: next ? DarkTheme : LightTheme };
+    });
+  }, []);
 
   const login = useCallback(async (username: string, password: string) => {
     const response = (await api.auth.login(username, password)) as AuthResponse;
@@ -88,7 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ ...state, login, signup, logout, setRole }}>
+    <AuthContext.Provider value={{ ...state, ...themeState, login, signup, logout, setRole, toggleTheme }}>
       {children}
     </AuthContext.Provider>
   );
@@ -100,4 +131,12 @@ export function useAuth(): AuthContextValue {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
+}
+
+export function useTheme() {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useTheme must be used within an AuthProvider');
+  }
+  return { colors: context.colors, isDark: context.isDark, toggleTheme: context.toggleTheme };
 }

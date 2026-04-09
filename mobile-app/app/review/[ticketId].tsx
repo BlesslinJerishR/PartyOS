@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { api } from '../../services/api';
-import Colors from '../../constants/Colors';
+import { useTheme } from '../../context/AuthContext';
+import { Fonts } from '../../constants/Fonts';
 import { Star } from 'lucide-react-native';
 
 export default function ReviewScreen() {
@@ -19,6 +20,7 @@ export default function ReviewScreen() {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const { colors } = useTheme();
 
   const handleSubmit = async () => {
     if (rating === 0) {
@@ -45,10 +47,10 @@ export default function ReviewScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.surface }]}>
       <View style={styles.content}>
-        <Text style={styles.title}>Leave a Review</Text>
-        <Text style={styles.subtitle}>
+        <Text style={[styles.title, { color: colors.text, fontFamily: Fonts.hero }]}>Leave a Review</Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>
           How was your experience?
         </Text>
 
@@ -57,15 +59,15 @@ export default function ReviewScreen() {
             <TouchableOpacity key={value} onPress={() => setRating(value)}>
               <Star
                 size={40}
-                color={Colors.accent}
+                color={colors.primary}
                 strokeWidth={1.8}
-                fill={value <= rating ? Colors.accent : 'transparent'}
+                fill={value <= rating ? colors.primary : 'transparent'}
               />
             </TouchableOpacity>
           ))}
         </View>
 
-        <Text style={styles.ratingLabel}>
+        <Text style={[styles.ratingLabel, { color: colors.textSecondary, fontFamily: Fonts.medium }]}>
           {rating === 0
             ? 'Tap a star to rate'
             : rating === 1
@@ -80,9 +82,9 @@ export default function ReviewScreen() {
         </Text>
 
         <TextInput
-          style={styles.commentInput}
+          style={[styles.commentInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border, fontFamily: Fonts.regular }]}
           placeholder="Share your experience (optional)"
-          placeholderTextColor={Colors.textLight}
+          placeholderTextColor={colors.textLight}
           value={comment}
           onChangeText={setComment}
           multiline
@@ -91,11 +93,11 @@ export default function ReviewScreen() {
         />
 
         <TouchableOpacity
-          style={[styles.submitButton, submitting && styles.submitDisabled]}
+          style={[styles.submitButton, { backgroundColor: colors.primary }, submitting && styles.submitDisabled]}
           onPress={handleSubmit}
           disabled={submitting}
         >
-          <Text style={styles.submitText}>
+          <Text style={[styles.submitText, { color: colors.white, fontFamily: Fonts.bold }]}>
             {submitting ? 'Submitting...' : 'Submit Review'}
           </Text>
         </TouchableOpacity>
@@ -107,7 +109,6 @@ export default function ReviewScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.surface,
   },
   content: {
     padding: 24,
@@ -115,13 +116,10 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: '700',
-    color: Colors.text,
     marginTop: 20,
   },
   subtitle: {
     fontSize: 15,
-    color: Colors.textSecondary,
     marginTop: 8,
     marginBottom: 32,
   },
@@ -131,25 +129,19 @@ const styles = StyleSheet.create({
   },
   ratingLabel: {
     fontSize: 16,
-    fontWeight: '500',
-    color: Colors.textSecondary,
     marginTop: 16,
     marginBottom: 32,
   },
   commentInput: {
     width: '100%',
-    backgroundColor: Colors.white,
     borderRadius: 14,
     padding: 16,
     fontSize: 16,
-    color: Colors.text,
     borderWidth: 1,
-    borderColor: Colors.border,
     minHeight: 120,
   },
   submitButton: {
     width: '100%',
-    backgroundColor: Colors.primary,
     paddingVertical: 16,
     borderRadius: 14,
     alignItems: 'center',
@@ -160,7 +152,5 @@ const styles = StyleSheet.create({
   },
   submitText: {
     fontSize: 18,
-    fontWeight: '700',
-    color: Colors.white,
   },
 });

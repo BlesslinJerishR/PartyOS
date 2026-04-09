@@ -1,30 +1,33 @@
 import { Tabs } from 'expo-router';
-import Colors from '../../constants/Colors';
+import { useTheme } from '../../context/AuthContext';
+import { Fonts } from '../../constants/Fonts';
 import { Play, Clock, Map, Ticket, User } from 'lucide-react-native';
 
 export default function GuestLayout() {
+  const { colors } = useTheme();
+
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: Colors.textLight,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textLight,
         tabBarStyle: {
-          backgroundColor: Colors.white,
-          borderTopColor: Colors.border,
+          backgroundColor: colors.background,
+          borderTopColor: colors.border,
           paddingBottom: 8,
           paddingTop: 8,
           height: 64,
         },
         tabBarLabelStyle: {
           fontSize: 11,
-          fontWeight: '600',
+          fontFamily: Fonts.semiBold,
         },
         headerStyle: {
-          backgroundColor: Colors.white,
+          backgroundColor: colors.background,
         },
         headerTitleStyle: {
-          fontWeight: '700',
-          color: Colors.text,
+          fontFamily: Fonts.bold,
+          color: colors.text,
         },
       }}
     >

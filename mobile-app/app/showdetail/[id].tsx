@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { api } from '../../services/api';
-import Colors from '../../constants/Colors';
+import { useTheme } from '../../context/AuthContext';
+import { Fonts } from '../../constants/Fonts';
 import { Show, Review, Snack } from '../../types';
 import {
   Calendar,
@@ -29,6 +30,7 @@ export default function ShowDetailScreen() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [snacks, setSnacks] = useState<Snack[]>([]);
   const [loading, setLoading] = useState(true);
+  const { colors } = useTheme();
 
   const loadData = useCallback(async () => {
     if (!id) return;
@@ -58,8 +60,8 @@ export default function ShowDetailScreen() {
 
   if (loading || !show) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+      <View style={[styles.center, { backgroundColor: colors.surface }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -71,7 +73,7 @@ export default function ShowDetailScreen() {
       : null;
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.surface }]}>
       {show.moviePoster && (
         <Image source={{ uri: show.moviePoster }} style={styles.heroPoster} />
       )}
@@ -82,8 +84,7 @@ export default function ShowDetailScreen() {
             style={[
               styles.statusBadge,
               {
-                backgroundColor:
-                  show.status === 'NOW_PLAYING' ? '#FFE8E3' : '#E3F2FD',
+                backgroundColor: colors.primary + '20',
               },
             ]}
           >
@@ -91,26 +92,23 @@ export default function ShowDetailScreen() {
               style={[
                 styles.statusText,
                 {
-                  color:
-                    show.status === 'NOW_PLAYING'
-                      ? Colors.nowPlaying
-                      : Colors.upcoming,
+                  color: colors.primary,
                 },
               ]}
             >
               {show.status === 'NOW_PLAYING' ? 'LIVE' : show.status}
             </Text>
           </View>
-          <Text style={styles.priceTag}>
+          <Text style={[styles.priceTag, { color: colors.primary, fontFamily: Fonts.bold }]}>
             {show.isFree ? 'Free Entry' : `${show.price}`}
           </Text>
         </View>
 
-        <Text style={styles.title}>{show.movieTitle}</Text>
+        <Text style={[styles.title, { color: colors.text, fontFamily: Fonts.hero }]}>{show.movieTitle}</Text>
 
         <View style={styles.detailRow}>
-          <Calendar size={16} color={Colors.textSecondary} strokeWidth={1.8} />
-          <Text style={styles.detailText}>
+          <Calendar size={16} color={colors.textSecondary} strokeWidth={1.8} />
+          <Text style={[styles.detailText, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>
             {new Date(show.startTime).toLocaleDateString('en-US', {
               weekday: 'long',
               month: 'long',
@@ -120,8 +118,8 @@ export default function ShowDetailScreen() {
         </View>
 
         <View style={styles.detailRow}>
-          <Clock size={16} color={Colors.textSecondary} strokeWidth={1.8} />
-          <Text style={styles.detailText}>
+          <Clock size={16} color={colors.textSecondary} strokeWidth={1.8} />
+          <Text style={[styles.detailText, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>
             {new Date(show.startTime).toLocaleTimeString([], {
               hour: '2-digit',
               minute: '2-digit',
@@ -136,22 +134,22 @@ export default function ShowDetailScreen() {
 
         {show.venue && (
           <View style={styles.detailRow}>
-            <MapPin size={16} color={Colors.textSecondary} strokeWidth={1.8} />
-            <Text style={styles.detailText}>
+            <MapPin size={16} color={colors.textSecondary} strokeWidth={1.8} />
+            <Text style={[styles.detailText, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>
               {show.venue.name} ({show.venue.screenType.replace('_', ' ')})
             </Text>
           </View>
         )}
 
         {show.host && (
-          <View style={styles.hostCard}>
-            <Text style={styles.hostLabel}>Hosted by</Text>
-            <Text style={styles.hostName}>{show.host.username}</Text>
+          <View style={[styles.hostCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
+            <Text style={[styles.hostLabel, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>Hosted by</Text>
+            <Text style={[styles.hostName, { color: colors.text, fontFamily: Fonts.semiBold }]}>{show.host.username}</Text>
             {averageRating && (
               <View style={styles.ratingRow}>
-                <Star size={14} color={Colors.accent} strokeWidth={2} fill={Colors.accent} />
-                <Text style={styles.ratingText}>{averageRating}</Text>
-                <Text style={styles.ratingCount}>({reviews.length} reviews)</Text>
+                <Star size={14} color={colors.primary} strokeWidth={2} fill={colors.primary} />
+                <Text style={[styles.ratingText, { color: colors.text, fontFamily: Fonts.semiBold }]}>{averageRating}</Text>
+                <Text style={[styles.ratingCount, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>({reviews.length} reviews)</Text>
               </View>
             )}
           </View>
@@ -159,24 +157,24 @@ export default function ShowDetailScreen() {
 
         {isBookable && (
           <TouchableOpacity
-            style={styles.bookButton}
+            style={[styles.bookButton, { backgroundColor: colors.primary }]}
             onPress={() => router.push(`/booking/${show.id}`)}
           >
-            <Armchair size={20} color={Colors.white} strokeWidth={2} />
-            <Text style={styles.bookButtonText}>Book a Seat</Text>
+            <Armchair size={20} color={colors.white} strokeWidth={2} />
+            <Text style={[styles.bookButtonText, { color: colors.white, fontFamily: Fonts.bold }]}>Book a Seat</Text>
           </TouchableOpacity>
         )}
 
         {snacks.length > 0 && (
           <>
             <View style={styles.sectionHeader}>
-              <Cookie size={18} color={Colors.text} strokeWidth={1.8} />
-              <Text style={styles.sectionTitle}>Available Snacks</Text>
+              <Cookie size={18} color={colors.text} strokeWidth={1.8} />
+              <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: Fonts.bold }]}>Available Snacks</Text>
             </View>
             {snacks.map((snack) => (
-              <View key={snack.id} style={styles.snackItem}>
-                <Text style={styles.snackName}>{snack.name}</Text>
-                <Text style={styles.snackPrice}>
+              <View key={snack.id} style={[styles.snackItem, { borderBottomColor: colors.border }]}>
+                <Text style={[styles.snackName, { color: colors.text, fontFamily: Fonts.regular }]}>{snack.name}</Text>
+                <Text style={[styles.snackPrice, { color: colors.primary, fontFamily: Fonts.semiBold }]}>
                   {snack.price === 0 ? 'Free' : `${snack.price}`}
                 </Text>
               </View>
@@ -187,13 +185,13 @@ export default function ShowDetailScreen() {
         {reviews.length > 0 && (
           <>
             <View style={styles.sectionHeader}>
-              <Star size={18} color={Colors.text} strokeWidth={1.8} />
-              <Text style={styles.sectionTitle}>Reviews</Text>
+              <Star size={18} color={colors.text} strokeWidth={1.8} />
+              <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: Fonts.bold }]}>Reviews</Text>
             </View>
             {reviews.map((review) => (
-              <View key={review.id} style={styles.reviewCard}>
+              <View key={review.id} style={[styles.reviewCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
                 <View style={styles.reviewHeader}>
-                  <Text style={styles.reviewUser}>
+                  <Text style={[styles.reviewUser, { color: colors.text, fontFamily: Fonts.semiBold }]}>
                     {review.user?.username || 'User'}
                   </Text>
                   <View style={styles.starsRow}>
@@ -201,15 +199,15 @@ export default function ShowDetailScreen() {
                       <Star
                         key={i}
                         size={14}
-                        color={Colors.accent}
+                        color={colors.primary}
                         strokeWidth={2}
-                        fill={i < review.rating ? Colors.accent : 'transparent'}
+                        fill={i < review.rating ? colors.primary : 'transparent'}
                       />
                     ))}
                   </View>
                 </View>
                 {review.comment && (
-                  <Text style={styles.reviewComment}>{review.comment}</Text>
+                  <Text style={[styles.reviewComment, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>{review.comment}</Text>
                 )}
               </View>
             ))}
@@ -225,13 +223,11 @@ export default function ShowDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.surface,
   },
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.surface,
   },
   heroPoster: {
     width: '100%',
@@ -253,17 +249,12 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 12,
-    fontWeight: '700',
   },
   priceTag: {
     fontSize: 16,
-    fontWeight: '700',
-    color: Colors.primary,
   },
   title: {
     fontSize: 24,
-    fontWeight: '700',
-    color: Colors.text,
     marginBottom: 16,
   },
   detailRow: {
@@ -274,25 +265,19 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 15,
-    color: Colors.textSecondary,
   },
   hostCard: {
-    backgroundColor: Colors.white,
     borderRadius: 12,
     padding: 16,
     marginTop: 16,
     borderWidth: 1,
-    borderColor: Colors.border,
   },
   hostLabel: {
     fontSize: 12,
-    color: Colors.textSecondary,
     marginBottom: 4,
   },
   hostName: {
     fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text,
   },
   ratingRow: {
     flexDirection: 'row',
@@ -302,18 +287,14 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: Colors.text,
   },
   ratingCount: {
     fontSize: 13,
-    color: Colors.textSecondary,
   },
   bookButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.primary,
     paddingVertical: 16,
     borderRadius: 14,
     marginTop: 20,
@@ -321,8 +302,6 @@ const styles = StyleSheet.create({
   },
   bookButtonText: {
     fontSize: 18,
-    fontWeight: '700',
-    color: Colors.white,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -333,32 +312,24 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: Colors.text,
   },
   snackItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
   },
   snackName: {
     fontSize: 15,
-    color: Colors.text,
   },
   snackPrice: {
     fontSize: 14,
-    fontWeight: '600',
-    color: Colors.primary,
   },
   reviewCard: {
-    backgroundColor: Colors.white,
     borderRadius: 12,
     padding: 14,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: Colors.border,
   },
   reviewHeader: {
     flexDirection: 'row',
@@ -367,8 +338,6 @@ const styles = StyleSheet.create({
   },
   reviewUser: {
     fontSize: 14,
-    fontWeight: '600',
-    color: Colors.text,
   },
   starsRow: {
     flexDirection: 'row',
@@ -376,7 +345,6 @@ const styles = StyleSheet.create({
   },
   reviewComment: {
     fontSize: 14,
-    color: Colors.textSecondary,
     marginTop: 8,
     lineHeight: 20,
   },

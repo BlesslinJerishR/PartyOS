@@ -11,14 +11,15 @@ import {
   RefreshControl,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, useTheme } from '../../context/AuthContext';
 import { api } from '../../services/api';
-import Colors from '../../constants/Colors';
+import { Fonts } from '../../constants/Fonts';
 import { MovieRequest } from '../../types';
-import { User, LogOut, Send, X, Search } from 'lucide-react-native';
+import { User, LogOut, Send, X, Search, Sun, Moon } from 'lucide-react-native';
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
+  const { colors, isDark, toggleTheme } = useTheme();
   const router = useRouter();
   const [requests, setRequests] = useState<MovieRequest[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -103,36 +104,50 @@ export default function ProfileScreen() {
 
   return (
     <ScrollView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.surface }]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
-      <View style={styles.profileHeader}>
-        <View style={styles.avatar}>
-          <User size={32} color={Colors.white} strokeWidth={1.8} />
+      <View style={[styles.profileHeader, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
+        <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
+          <User size={32} color={colors.white} strokeWidth={1.8} />
         </View>
-        <Text style={styles.username}>{user?.username || 'Guest'}</Text>
-        <Text style={styles.role}>{user?.role || 'No role set'}</Text>
+        <Text style={[styles.username, { color: colors.text, fontFamily: Fonts.bold }]}>{user?.username || 'Guest'}</Text>
+        <Text style={[styles.role, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>{user?.role || 'No role set'}</Text>
+      </View>
+
+      <View style={[styles.themeRow, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <Text style={[styles.themeLabel, { color: colors.text, fontFamily: Fonts.medium }]}>Appearance</Text>
+        <TouchableOpacity onPress={toggleTheme} style={[styles.themeToggle, { backgroundColor: colors.surfaceAlt }]}>
+          {isDark ? (
+            <Moon size={20} color={colors.primary} strokeWidth={2} />
+          ) : (
+            <Sun size={20} color={colors.primary} strokeWidth={2} />
+          )}
+          <Text style={[styles.themeToggleText, { color: colors.text, fontFamily: Fonts.regular }]}>
+            {isDark ? 'Dark' : 'Light'}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       <TouchableOpacity
-        style={styles.requestButton}
+        style={[styles.requestButton, { backgroundColor: colors.primary }]}
         onPress={() => setShowRequestModal(true)}
       >
-        <Send size={20} color={Colors.white} strokeWidth={2} />
-        <Text style={styles.requestButtonText}>Request a Movie</Text>
+        <Send size={20} color={colors.white} strokeWidth={2} />
+        <Text style={[styles.requestButtonText, { color: colors.white, fontFamily: Fonts.semiBold }]}>Request a Movie</Text>
       </TouchableOpacity>
 
-      <Text style={styles.sectionTitle}>My Requests</Text>
+      <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: Fonts.bold }]}>My Requests</Text>
       {requests.length === 0 ? (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyText}>No movie requests yet</Text>
+          <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>No movie requests yet</Text>
         </View>
       ) : (
         requests.map((req) => (
-          <View key={req.id} style={styles.requestCard}>
+          <View key={req.id} style={[styles.requestCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
             <View style={styles.requestInfo}>
-              <Text style={styles.requestTitle}>{req.movieTitle}</Text>
-              <Text style={styles.requestDate}>
+              <Text style={[styles.requestTitle, { color: colors.text, fontFamily: Fonts.semiBold }]}>{req.movieTitle}</Text>
+              <Text style={[styles.requestDate, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>
                 {new Date(req.createdAt).toLocaleDateString()}
               </Text>
             </View>
@@ -142,10 +157,10 @@ export default function ProfileScreen() {
                 {
                   backgroundColor:
                     req.status === 'PENDING'
-                      ? Colors.warning + '30'
+                      ? colors.warning + '30'
                       : req.status === 'ACCEPTED'
-                      ? Colors.success + '30'
-                      : Colors.error + '30',
+                      ? colors.success + '30'
+                      : colors.error + '30',
                 },
               ]}
             >
@@ -155,10 +170,10 @@ export default function ProfileScreen() {
                   {
                     color:
                       req.status === 'PENDING'
-                        ? '#9B7E00'
+                        ? colors.primary
                         : req.status === 'ACCEPTED'
-                        ? Colors.success
-                        : Colors.error,
+                        ? colors.success
+                        : colors.error,
                   },
                 ]}
               >
@@ -169,39 +184,39 @@ export default function ProfileScreen() {
         ))
       )}
 
-      <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-        <LogOut size={20} color={Colors.error} strokeWidth={1.8} />
-        <Text style={styles.logoutText}>Logout</Text>
+      <TouchableOpacity style={[styles.logoutBtn, { borderColor: colors.error }]} onPress={handleLogout}>
+        <LogOut size={20} color={colors.error} strokeWidth={1.8} />
+        <Text style={[styles.logoutText, { color: colors.error, fontFamily: Fonts.medium }]}>Logout</Text>
       </TouchableOpacity>
 
       <Modal visible={showRequestModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <ScrollView style={styles.modalContent}>
+        <View style={[styles.modalOverlay, { backgroundColor: colors.overlay }]}>
+          <ScrollView style={[styles.modalContent, { backgroundColor: colors.background }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Request a Movie</Text>
+              <Text style={[styles.modalTitle, { color: colors.text, fontFamily: Fonts.bold }]}>Request a Movie</Text>
               <TouchableOpacity onPress={() => setShowRequestModal(false)}>
-                <X size={24} color={Colors.text} strokeWidth={1.8} />
+                <X size={24} color={colors.text} strokeWidth={1.8} />
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.fieldLabel}>Search Movie</Text>
+            <Text style={[styles.fieldLabel, { color: colors.text, fontFamily: Fonts.semiBold }]}>Search Movie</Text>
             <View style={styles.searchRow}>
               <TextInput
-                style={styles.searchInput}
+                style={[styles.searchInput, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border, fontFamily: Fonts.regular }]}
                 placeholder="Search for a movie"
-                placeholderTextColor={Colors.textLight}
+                placeholderTextColor={colors.textLight}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 onSubmitEditing={searchMovies}
               />
-              <TouchableOpacity style={styles.searchBtn} onPress={searchMovies}>
-                <Search size={18} color={Colors.white} strokeWidth={2} />
+              <TouchableOpacity style={[styles.searchBtn, { backgroundColor: colors.primary }]} onPress={searchMovies}>
+                <Search size={18} color={colors.white} strokeWidth={2} />
               </TouchableOpacity>
             </View>
 
             {selectedMovie && (
-              <View style={styles.selectedBadge}>
-                <Text style={styles.selectedText}>
+              <View style={[styles.selectedBadge, { backgroundColor: colors.surface, borderColor: colors.primary }]}>
+                <Text style={[styles.selectedText, { color: colors.primary, fontFamily: Fonts.semiBold }]}>
                   Selected: {selectedMovie.title}
                 </Text>
               </View>
@@ -212,14 +227,14 @@ export default function ProfileScreen() {
                 {searchResults.slice(0, 8).map((movie: any) => (
                   <TouchableOpacity
                     key={movie.id}
-                    style={styles.resultItem}
+                    style={[styles.resultItem, { borderBottomColor: colors.border }]}
                     onPress={() => {
                       setSelectedMovie(movie);
                       setSearchResults([]);
                     }}
                   >
-                    <Text style={styles.resultTitle}>{movie.title}</Text>
-                    <Text style={styles.resultYear}>
+                    <Text style={[styles.resultTitle, { color: colors.text, fontFamily: Fonts.regular }]}>{movie.title}</Text>
+                    <Text style={[styles.resultYear, { color: colors.textSecondary }]}>
                       {movie.release_date?.split('-')[0]}
                     </Text>
                   </TouchableOpacity>
@@ -227,27 +242,27 @@ export default function ProfileScreen() {
               </View>
             )}
 
-            <Text style={styles.fieldLabel}>Host ID</Text>
+            <Text style={[styles.fieldLabel, { color: colors.text, fontFamily: Fonts.semiBold }]}>Host ID</Text>
             <TextInput
-              style={styles.modalInput}
+              style={[styles.modalInput, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border, fontFamily: Fonts.regular }]}
               placeholder="Enter the host user ID"
-              placeholderTextColor={Colors.textLight}
+              placeholderTextColor={colors.textLight}
               value={hostId}
               onChangeText={setHostId}
             />
 
-            <Text style={styles.fieldLabel}>Message (optional)</Text>
+            <Text style={[styles.fieldLabel, { color: colors.text, fontFamily: Fonts.semiBold }]}>Message (optional)</Text>
             <TextInput
-              style={[styles.modalInput, styles.textArea]}
+              style={[styles.modalInput, styles.textArea, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border, fontFamily: Fonts.regular }]}
               placeholder="Why you want this movie screened"
-              placeholderTextColor={Colors.textLight}
+              placeholderTextColor={colors.textLight}
               value={message}
               onChangeText={setMessage}
               multiline
             />
 
-            <TouchableOpacity style={styles.sendBtn} onPress={handleSendRequest}>
-              <Text style={styles.sendBtnText}>Send Request</Text>
+            <TouchableOpacity style={[styles.sendBtn, { backgroundColor: colors.primary }]} onPress={handleSendRequest}>
+              <Text style={[styles.sendBtnText, { color: colors.white, fontFamily: Fonts.semiBold }]}>Send Request</Text>
             </TouchableOpacity>
 
             <View style={styles.bottomSpacer} />
@@ -263,32 +278,25 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.surface,
   },
   profileHeader: {
     alignItems: 'center',
     paddingVertical: 32,
-    backgroundColor: Colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
   },
   avatar: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
   },
   username: {
     fontSize: 20,
-    fontWeight: '700',
-    color: Colors.text,
   },
   role: {
     fontSize: 14,
-    color: Colors.textSecondary,
     marginTop: 4,
     textTransform: 'capitalize',
   },
@@ -296,7 +304,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.primary,
     margin: 16,
     paddingVertical: 14,
     borderRadius: 12,
@@ -304,18 +311,13 @@ const styles = StyleSheet.create({
   },
   requestButtonText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: Colors.white,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: Colors.text,
     paddingHorizontal: 16,
     paddingBottom: 12,
   },
   requestCard: {
-    backgroundColor: Colors.white,
     marginHorizontal: 16,
     marginBottom: 8,
     borderRadius: 12,
@@ -323,19 +325,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.border,
   },
   requestInfo: {
     flex: 1,
   },
   requestTitle: {
     fontSize: 15,
-    fontWeight: '600',
-    color: Colors.text,
   },
   requestDate: {
     fontSize: 12,
-    color: Colors.textSecondary,
     marginTop: 2,
   },
   statusBadge: {
@@ -345,7 +343,6 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 11,
-    fontWeight: '700',
   },
   logoutBtn: {
     flexDirection: 'row',
@@ -356,12 +353,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.error,
   },
   logoutText: {
     fontSize: 16,
-    fontWeight: '500',
-    color: Colors.error,
   },
   emptyState: {
     alignItems: 'center',
@@ -369,15 +363,12 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
-    color: Colors.textSecondary,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: Colors.overlay,
   },
   modalContent: {
     flex: 1,
-    backgroundColor: Colors.white,
     marginTop: 80,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
@@ -391,13 +382,9 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    color: Colors.text,
   },
   fieldLabel: {
     fontSize: 14,
-    fontWeight: '600',
-    color: Colors.text,
     marginBottom: 8,
   },
   searchRow: {
@@ -407,33 +394,25 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    backgroundColor: Colors.surface,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    color: Colors.text,
     borderWidth: 1,
-    borderColor: Colors.border,
   },
   searchBtn: {
-    backgroundColor: Colors.primary,
     borderRadius: 12,
     paddingHorizontal: 14,
     justifyContent: 'center',
   },
   selectedBadge: {
-    backgroundColor: Colors.surface,
     borderRadius: 12,
     padding: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: Colors.primary,
   },
   selectedText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: Colors.primary,
   },
   resultsList: {
     marginBottom: 16,
@@ -441,28 +420,22 @@ const styles = StyleSheet.create({
   resultItem: {
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
   resultTitle: {
     fontSize: 15,
-    color: Colors.text,
     flex: 1,
   },
   resultYear: {
     fontSize: 13,
-    color: Colors.textSecondary,
   },
   modalInput: {
-    backgroundColor: Colors.surface,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    color: Colors.text,
     borderWidth: 1,
-    borderColor: Colors.border,
     marginBottom: 12,
   },
   textArea: {
@@ -470,7 +443,6 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   sendBtn: {
-    backgroundColor: Colors.primary,
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
@@ -478,10 +450,30 @@ const styles = StyleSheet.create({
   },
   sendBtnText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: Colors.white,
   },
   bottomSpacer: {
     height: 40,
+  },
+  themeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+  },
+  themeLabel: {
+    fontSize: 16,
+  },
+  themeToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 8,
+  },
+  themeToggleText: {
+    fontSize: 14,
   },
 });

@@ -11,7 +11,8 @@ import {
   RefreshControl,
 } from 'react-native';
 import { api } from '../../services/api';
-import Colors from '../../constants/Colors';
+import { useTheme } from '../../context/AuthContext';
+import { Fonts } from '../../constants/Fonts';
 import { Venue, Seat, SeatType, ScreenType, SEAT_TYPE_LABELS } from '../../types';
 import {
   Plus,
@@ -23,13 +24,13 @@ import {
 } from 'lucide-react-native';
 
 const SEAT_COLORS: Record<SeatType, string> = {
-  CHAIR: '#74B9FF',
-  SINGLE_SOFA: '#A29BFE',
-  RECLINER: '#6C5CE7',
-  THREE_SEATER_SOFA: '#FDCB6E',
-  BED_SINGLE: '#55EFC4',
-  BED_DOUBLE: '#00B894',
-  BED_TRIPLE: '#00CEC9',
+  CHAIR: '#FF004F',
+  SINGLE_SOFA: '#FF004F',
+  RECLINER: '#FF004F',
+  THREE_SEATER_SOFA: '#FF004F',
+  BED_SINGLE: '#FF004F',
+  BED_DOUBLE: '#FF004F',
+  BED_TRIPLE: '#FF004F',
 };
 
 const GRID_CELL_SIZE = 52;
@@ -52,6 +53,8 @@ export default function CanvasScreen() {
   const [seatLabel, setSeatLabel] = useState('');
   const [seatRow, setSeatRow] = useState('');
   const [seatCol, setSeatCol] = useState('');
+
+  const { colors } = useTheme();
 
   const loadVenues = useCallback(async () => {
     try {
@@ -163,10 +166,10 @@ export default function CanvasScreen() {
                 ]}
                 onLongPress={() => handleRemoveSeat(seat.id)}
               >
-                <Text style={styles.seatCellLabel}>{seat.label}</Text>
+                <Text style={[styles.seatCellLabel, { color: colors.white, fontFamily: Fonts.bold }]}>{seat.label}</Text>
               </TouchableOpacity>
             ) : (
-              <View style={styles.emptyCell} />
+              <View style={[styles.emptyCell, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]} />
             )}
           </View>,
         );
@@ -182,7 +185,7 @@ export default function CanvasScreen() {
 
   return (
     <ScrollView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.surface }]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
       <View style={styles.venueSelector}>
@@ -192,7 +195,8 @@ export default function CanvasScreen() {
               key={venue.id}
               style={[
                 styles.venueChip,
-                selectedVenue?.id === venue.id && styles.venueChipActive,
+                { backgroundColor: colors.background, borderColor: colors.border },
+                selectedVenue?.id === venue.id && [styles.venueChipActive, { backgroundColor: colors.primary, borderColor: colors.primary }],
               ]}
               onPress={() => {
                 setSelectedVenue(venue);
@@ -202,7 +206,8 @@ export default function CanvasScreen() {
               <Text
                 style={[
                   styles.venueChipText,
-                  selectedVenue?.id === venue.id && styles.venueChipTextActive,
+                  { color: colors.text, fontFamily: Fonts.regular },
+                  selectedVenue?.id === venue.id && [styles.venueChipTextActive, { color: colors.white }],
                 ]}
               >
                 {venue.name}
@@ -210,11 +215,11 @@ export default function CanvasScreen() {
             </TouchableOpacity>
           ))}
           <TouchableOpacity
-            style={styles.addVenueChip}
+            style={[styles.addVenueChip, { borderColor: colors.primary }]}
             onPress={() => setShowCreateVenue(true)}
           >
-            <Plus size={16} color={Colors.primary} strokeWidth={2} />
-            <Text style={styles.addVenueText}>Add Venue</Text>
+            <Plus size={16} color={colors.primary} strokeWidth={2} />
+            <Text style={[styles.addVenueText, { color: colors.primary, fontFamily: Fonts.medium }]}>Add Venue</Text>
           </TouchableOpacity>
         </ScrollView>
       </View>
@@ -222,13 +227,13 @@ export default function CanvasScreen() {
       {selectedVenue && (
         <>
           <View style={styles.screenIndicator}>
-            <View style={styles.screenBar}>
+            <View style={[styles.screenBar, { backgroundColor: colors.text }]}>
               {selectedVenue.screenType === 'TV_4K' ? (
-                <Monitor size={20} color={Colors.white} strokeWidth={1.8} />
+                <Monitor size={20} color={colors.white} strokeWidth={1.8} />
               ) : (
-                <Projector size={20} color={Colors.white} strokeWidth={1.8} />
+                <Projector size={20} color={colors.white} strokeWidth={1.8} />
               )}
-              <Text style={styles.screenText}>
+              <Text style={[styles.screenText, { color: colors.white, fontFamily: Fonts.semiBold }]}>
                 {selectedVenue.screenType === 'TV_4K' ? '4K TV' : 'Projector'}
               </Text>
             </View>
@@ -241,7 +246,7 @@ export default function CanvasScreen() {
           </View>
 
           <View style={styles.legend}>
-            <Text style={styles.legendTitle}>Legend</Text>
+            <Text style={[styles.legendTitle, { color: colors.text, fontFamily: Fonts.semiBold }]}>Legend</Text>
             <View style={styles.legendGrid}>
               {(Object.keys(SEAT_COLORS) as SeatType[]).map((type) => (
                 <View key={type} style={styles.legendItem}>
@@ -251,129 +256,132 @@ export default function CanvasScreen() {
                       { backgroundColor: SEAT_COLORS[type] },
                     ]}
                   />
-                  <Text style={styles.legendLabel}>{SEAT_TYPE_LABELS[type]}</Text>
+                  <Text style={[styles.legendLabel, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>{SEAT_TYPE_LABELS[type]}</Text>
                 </View>
               ))}
             </View>
-            <Text style={styles.legendHint}>Long press a seat to remove it</Text>
+            <Text style={[styles.legendHint, { color: colors.textLight, fontFamily: Fonts.regular }]}>Long press a seat to remove it</Text>
           </View>
 
           <TouchableOpacity
-            style={styles.addSeatButton}
+            style={[styles.addSeatButton, { backgroundColor: colors.primary }]}
             onPress={() => setShowAddSeat(true)}
           >
-            <Plus size={20} color={Colors.white} strokeWidth={2} />
-            <Text style={styles.addSeatText}>Add Seat</Text>
+            <Plus size={20} color={colors.white} strokeWidth={2} />
+            <Text style={[styles.addSeatText, { color: colors.white, fontFamily: Fonts.semiBold }]}>Add Seat</Text>
           </TouchableOpacity>
         </>
       )}
 
       {!selectedVenue && venues.length === 0 && (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyTitle}>No Venues</Text>
-          <Text style={styles.emptySubtext}>
+          <Text style={[styles.emptyTitle, { color: colors.text, fontFamily: Fonts.semiBold }]}>No Venues</Text>
+          <Text style={[styles.emptySubtext, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>
             Create your first venue to start configuring your seating
           </Text>
           <TouchableOpacity
-            style={styles.createFirstButton}
+            style={[styles.createFirstButton, { backgroundColor: colors.primary }]}
             onPress={() => setShowCreateVenue(true)}
           >
-            <Text style={styles.createFirstText}>Create Venue</Text>
+            <Text style={[styles.createFirstText, { color: colors.white, fontFamily: Fonts.semiBold }]}>Create Venue</Text>
           </TouchableOpacity>
         </View>
       )}
 
       <Modal visible={showCreateVenue} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <View style={[styles.modalOverlay, { backgroundColor: colors.overlay }]}>
+          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Create Venue</Text>
+              <Text style={[styles.modalTitle, { color: colors.text, fontFamily: Fonts.bold }]}>Create Venue</Text>
               <TouchableOpacity onPress={() => setShowCreateVenue(false)}>
-                <X size={24} color={Colors.text} strokeWidth={1.8} />
+                <X size={24} color={colors.text} strokeWidth={1.8} />
               </TouchableOpacity>
             </View>
             <TextInput
-              style={styles.modalInput}
+              style={[styles.modalInput, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border, fontFamily: Fonts.regular }]}
               placeholder="Venue Name"
-              placeholderTextColor={Colors.textLight}
+              placeholderTextColor={colors.textLight}
               value={venueName}
               onChangeText={setVenueName}
             />
             <TextInput
-              style={styles.modalInput}
+              style={[styles.modalInput, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border, fontFamily: Fonts.regular }]}
               placeholder="Address"
-              placeholderTextColor={Colors.textLight}
+              placeholderTextColor={colors.textLight}
               value={venueAddress}
               onChangeText={setVenueAddress}
             />
             <View style={styles.rowInputs}>
               <TextInput
-                style={[styles.modalInput, styles.halfInput]}
+                style={[styles.modalInput, styles.halfInput, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border, fontFamily: Fonts.regular }]}
                 placeholder="Latitude"
-                placeholderTextColor={Colors.textLight}
+                placeholderTextColor={colors.textLight}
                 value={venueLat}
                 onChangeText={setVenueLat}
                 keyboardType="numeric"
               />
               <TextInput
-                style={[styles.modalInput, styles.halfInput]}
+                style={[styles.modalInput, styles.halfInput, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border, fontFamily: Fonts.regular }]}
                 placeholder="Longitude"
-                placeholderTextColor={Colors.textLight}
+                placeholderTextColor={colors.textLight}
                 value={venueLng}
                 onChangeText={setVenueLng}
                 keyboardType="numeric"
               />
             </View>
-            <Text style={styles.fieldLabel}>Screen Type</Text>
+            <Text style={[styles.fieldLabel, { color: colors.text, fontFamily: Fonts.semiBold }]}>Screen Type</Text>
             <View style={styles.screenTypeRow}>
               <TouchableOpacity
                 style={[
                   styles.screenTypeOption,
-                  screenType === 'TV_4K' && styles.screenTypeActive,
+                  { borderColor: colors.border },
+                  screenType === 'TV_4K' && [styles.screenTypeActive, { backgroundColor: colors.primary, borderColor: colors.primary }],
                 ]}
                 onPress={() => setScreenType('TV_4K')}
               >
-                <Monitor size={20} color={screenType === 'TV_4K' ? Colors.white : Colors.text} strokeWidth={1.8} />
-                <Text style={[styles.screenTypeText, screenType === 'TV_4K' && styles.screenTypeTextActive]}>
+                <Monitor size={20} color={screenType === 'TV_4K' ? colors.white : colors.text} strokeWidth={1.8} />
+                <Text style={[styles.screenTypeText, { color: colors.text, fontFamily: Fonts.medium }, screenType === 'TV_4K' && [styles.screenTypeTextActive, { color: colors.white }]]}>
                   4K TV
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[
                   styles.screenTypeOption,
-                  screenType === 'PROJECTOR' && styles.screenTypeActive,
+                  { borderColor: colors.border },
+                  screenType === 'PROJECTOR' && [styles.screenTypeActive, { backgroundColor: colors.primary, borderColor: colors.primary }],
                 ]}
                 onPress={() => setScreenType('PROJECTOR')}
               >
-                <Projector size={20} color={screenType === 'PROJECTOR' ? Colors.white : Colors.text} strokeWidth={1.8} />
-                <Text style={[styles.screenTypeText, screenType === 'PROJECTOR' && styles.screenTypeTextActive]}>
+                <Projector size={20} color={screenType === 'PROJECTOR' ? colors.white : colors.text} strokeWidth={1.8} />
+                <Text style={[styles.screenTypeText, { color: colors.text, fontFamily: Fonts.medium }, screenType === 'PROJECTOR' && [styles.screenTypeTextActive, { color: colors.white }]]}>
                   Projector
                 </Text>
               </TouchableOpacity>
             </View>
-            <TouchableOpacity style={styles.modalButton} onPress={handleCreateVenue}>
-              <Text style={styles.modalButtonText}>Create</Text>
+            <TouchableOpacity style={[styles.modalButton, { backgroundColor: colors.primary }]} onPress={handleCreateVenue}>
+              <Text style={[styles.modalButtonText, { color: colors.white, fontFamily: Fonts.semiBold }]}>Create</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
 
       <Modal visible={showAddSeat} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <View style={[styles.modalOverlay, { backgroundColor: colors.overlay }]}>
+          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Add Seat</Text>
+              <Text style={[styles.modalTitle, { color: colors.text, fontFamily: Fonts.bold }]}>Add Seat</Text>
               <TouchableOpacity onPress={() => setShowAddSeat(false)}>
-                <X size={24} color={Colors.text} strokeWidth={1.8} />
+                <X size={24} color={colors.text} strokeWidth={1.8} />
               </TouchableOpacity>
             </View>
-            <Text style={styles.fieldLabel}>Seat Type</Text>
+            <Text style={[styles.fieldLabel, { color: colors.text, fontFamily: Fonts.semiBold }]}>Seat Type</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.seatTypeScroll}>
               {(Object.keys(SEAT_TYPE_LABELS) as SeatType[]).map((type) => (
                 <TouchableOpacity
                   key={type}
                   style={[
                     styles.seatTypeChip,
+                    { backgroundColor: colors.surfaceAlt },
                     seatType === type && { backgroundColor: SEAT_COLORS[type] },
                   ]}
                   onPress={() => setSeatType(type)}
@@ -381,7 +389,8 @@ export default function CanvasScreen() {
                   <Text
                     style={[
                       styles.seatTypeChipText,
-                      seatType === type && styles.seatTypeChipTextActive,
+                      { color: colors.text, fontFamily: Fonts.medium },
+                      seatType === type && [styles.seatTypeChipTextActive, { color: colors.white }],
                     ]}
                   >
                     {SEAT_TYPE_LABELS[type]}
@@ -390,32 +399,32 @@ export default function CanvasScreen() {
               ))}
             </ScrollView>
             <TextInput
-              style={styles.modalInput}
+              style={[styles.modalInput, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border, fontFamily: Fonts.regular }]}
               placeholder="Seat Label (e.g. A1)"
-              placeholderTextColor={Colors.textLight}
+              placeholderTextColor={colors.textLight}
               value={seatLabel}
               onChangeText={setSeatLabel}
             />
             <View style={styles.rowInputs}>
               <TextInput
-                style={[styles.modalInput, styles.halfInput]}
+                style={[styles.modalInput, styles.halfInput, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border, fontFamily: Fonts.regular }]}
                 placeholder="Row"
-                placeholderTextColor={Colors.textLight}
+                placeholderTextColor={colors.textLight}
                 value={seatRow}
                 onChangeText={setSeatRow}
                 keyboardType="numeric"
               />
               <TextInput
-                style={[styles.modalInput, styles.halfInput]}
+                style={[styles.modalInput, styles.halfInput, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border, fontFamily: Fonts.regular }]}
                 placeholder="Column"
-                placeholderTextColor={Colors.textLight}
+                placeholderTextColor={colors.textLight}
                 value={seatCol}
                 onChangeText={setSeatCol}
                 keyboardType="numeric"
               />
             </View>
-            <TouchableOpacity style={styles.modalButton} onPress={handleAddSeat}>
-              <Text style={styles.modalButtonText}>Add Seat</Text>
+            <TouchableOpacity style={[styles.modalButton, { backgroundColor: colors.primary }]} onPress={handleAddSeat}>
+              <Text style={[styles.modalButtonText, { color: colors.white, fontFamily: Fonts.semiBold }]}>Add Seat</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -429,7 +438,6 @@ export default function CanvasScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.surface,
   },
   venueSelector: {
     paddingHorizontal: 16,
@@ -439,23 +447,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: Colors.white,
     borderWidth: 1,
-    borderColor: Colors.border,
     marginRight: 8,
   },
-  venueChipActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
+  venueChipActive: {},
   venueChipText: {
     fontSize: 14,
-    color: Colors.text,
-    fontWeight: '500',
   },
-  venueChipTextActive: {
-    color: Colors.white,
-  },
+  venueChipTextActive: {},
   addVenueChip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -463,14 +462,11 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: Colors.primary,
     borderStyle: 'dashed',
     gap: 4,
   },
   addVenueText: {
     fontSize: 14,
-    color: Colors.primary,
-    fontWeight: '500',
   },
   screenIndicator: {
     paddingHorizontal: 20,
@@ -480,15 +476,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.text,
     borderRadius: 8,
     paddingVertical: 10,
     gap: 8,
   },
   screenText: {
-    color: Colors.white,
     fontSize: 14,
-    fontWeight: '600',
   },
   canvasContainer: {
     paddingHorizontal: 20,
@@ -510,15 +503,11 @@ const styles = StyleSheet.create({
   },
   seatCellLabel: {
     fontSize: 10,
-    fontWeight: '700',
-    color: Colors.white,
   },
   emptyCell: {
     flex: 1,
     borderRadius: 8,
-    backgroundColor: Colors.surfaceAlt,
     borderWidth: 1,
-    borderColor: Colors.border,
     borderStyle: 'dashed',
   },
   legend: {
@@ -527,8 +516,6 @@ const styles = StyleSheet.create({
   },
   legendTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text,
     marginBottom: 8,
   },
   legendGrid: {
@@ -549,11 +536,9 @@ const styles = StyleSheet.create({
   },
   legendLabel: {
     fontSize: 12,
-    color: Colors.textSecondary,
   },
   legendHint: {
     fontSize: 11,
-    color: Colors.textLight,
     marginTop: 8,
     fontStyle: 'italic',
   },
@@ -561,7 +546,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.primary,
     marginHorizontal: 20,
     paddingVertical: 14,
     borderRadius: 12,
@@ -569,8 +553,6 @@ const styles = StyleSheet.create({
   },
   addSeatText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: Colors.white,
   },
   emptyState: {
     alignItems: 'center',
@@ -579,34 +561,26 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 20,
-    fontWeight: '600',
-    color: Colors.text,
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: Colors.textSecondary,
     textAlign: 'center',
     marginBottom: 24,
   },
   createFirstButton: {
-    backgroundColor: Colors.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,
   },
   createFirstText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: Colors.white,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: Colors.overlay,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: Colors.white,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 24,
@@ -620,18 +594,13 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    color: Colors.text,
   },
   modalInput: {
-    backgroundColor: Colors.surface,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    color: Colors.text,
     borderWidth: 1,
-    borderColor: Colors.border,
     marginBottom: 12,
   },
   rowInputs: {
@@ -643,8 +612,6 @@ const styles = StyleSheet.create({
   },
   fieldLabel: {
     fontSize: 14,
-    fontWeight: '600',
-    color: Colors.text,
     marginBottom: 8,
   },
   screenTypeRow: {
@@ -660,21 +627,13 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
     gap: 8,
   },
-  screenTypeActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
+  screenTypeActive: {},
   screenTypeText: {
     fontSize: 14,
-    fontWeight: '500',
-    color: Colors.text,
   },
-  screenTypeTextActive: {
-    color: Colors.white,
-  },
+  screenTypeTextActive: {},
   seatTypeScroll: {
     marginBottom: 12,
   },
@@ -682,19 +641,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 16,
-    backgroundColor: Colors.surfaceAlt,
     marginRight: 8,
   },
   seatTypeChipText: {
     fontSize: 13,
-    color: Colors.text,
-    fontWeight: '500',
   },
-  seatTypeChipTextActive: {
-    color: Colors.white,
-  },
+  seatTypeChipTextActive: {},
   modalButton: {
-    backgroundColor: Colors.primary,
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
@@ -702,8 +655,6 @@ const styles = StyleSheet.create({
   },
   modalButtonText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: Colors.white,
   },
   bottomSpacer: {
     height: 40,

@@ -1,12 +1,12 @@
 import { useEffect } from 'react';
 import { router } from 'expo-router';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, useTheme } from '../context/AuthContext';
 import { storage } from '../services/storage';
-import Colors from '../constants/Colors';
 
 export default function IndexScreen() {
   const { isLoading, isAuthenticated, user } = useAuth();
+  const { colors } = useTheme();
 
   useEffect(() => {
     if (isLoading) return;
@@ -40,8 +40,8 @@ export default function IndexScreen() {
   }, [isLoading, isAuthenticated, user]);
 
   return (
-    <View style={styles.container}>
-      <ActivityIndicator size="large" color={Colors.primary} />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <ActivityIndicator size="large" color={colors.primary} />
     </View>
   );
 }
@@ -51,6 +51,5 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.background,
   },
 });

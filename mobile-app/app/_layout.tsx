@@ -2,26 +2,43 @@ import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { AuthProvider } from '../context/AuthContext';
+import { useFonts } from 'expo-font';
+import {
+  Inconsolata_400Regular,
+  Inconsolata_500Medium,
+  Inconsolata_600SemiBold,
+  Inconsolata_700Bold,
+} from '@expo-google-fonts/inconsolata';
+import {
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold,
+} from '@expo-google-fonts/plus-jakarta-sans';
+import {
+  Roboto_400Regular,
+  Roboto_500Medium,
+  Roboto_700Bold,
+} from '@expo-google-fonts/roboto';
+import { AuthProvider, useTheme } from '../context/AuthContext';
 
 export { ErrorBoundary } from 'expo-router';
 
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    setReady(true);
-    SplashScreen.hideAsync();
-  }, []);
-
-  if (!ready) return null;
+function InnerLayout() {
+  const { colors, isDark } = useTheme();
 
   return (
-    <AuthProvider>
-      <StatusBar style="dark" />
-      <Stack screenOptions={{ headerShown: false }}>
+    <>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: colors.background },
+          headerStyle: { backgroundColor: colors.background },
+          headerTintColor: colors.text,
+          headerTitleStyle: { color: colors.text },
+        }}
+      >
         <Stack.Screen name="onboarding" />
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="roleselect" />
@@ -31,6 +48,34 @@ export default function RootLayout() {
         <Stack.Screen name="booking/[id]" options={{ headerShown: true, title: 'Book Tickets' }} />
         <Stack.Screen name="review/[ticketId]" options={{ headerShown: true, title: 'Write Review' }} />
       </Stack>
+    </>
+  );
+}
+
+export default function RootLayout() {
+  const [fontsLoaded] = useFonts({
+    Inconsolata_400Regular,
+    Inconsolata_500Medium,
+    Inconsolata_600SemiBold,
+    Inconsolata_700Bold,
+    PlusJakartaSans_700Bold,
+    PlusJakartaSans_800ExtraBold,
+    Roboto_400Regular,
+    Roboto_500Medium,
+    Roboto_700Bold,
+  });
+
+  useEffect(() => {
+    if (fontsLoaded) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) return null;
+
+  return (
+    <AuthProvider>
+      <InnerLayout />
     </AuthProvider>
   );
 }

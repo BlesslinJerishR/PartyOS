@@ -9,14 +9,15 @@ import {
   Alert,
 } from 'react-native';
 import { router } from 'expo-router';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, useTheme } from '../../context/AuthContext';
 import { api } from '../../services/api';
-import Colors from '../../constants/Colors';
+import { Fonts } from '../../constants/Fonts';
 import { Venue, Show as ShowType } from '../../types';
 import { LogOut, Plus, Film, MapPin } from 'lucide-react-native';
 
 export default function DashboardScreen() {
   const { user, logout } = useAuth();
+  const { colors } = useTheme();
   const [venues, setVenues] = useState<Venue[]>([]);
   const [shows, setShows] = useState<ShowType[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -56,52 +57,52 @@ export default function DashboardScreen() {
 
   return (
     <ScrollView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.surface }]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
       <View style={styles.headerRow}>
         <View>
-          <Text style={styles.greeting}>Hello, {user?.username}</Text>
-          <Text style={styles.role}>Party Host</Text>
+          <Text style={[styles.greeting, { color: colors.text, fontFamily: Fonts.dashBold }]}>Hello, {user?.username}</Text>
+          <Text style={[styles.role, { color: colors.primary, fontFamily: Fonts.dashMedium }]}>Party Host</Text>
         </View>
         <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
-          <LogOut size={22} color={Colors.textSecondary} strokeWidth={1.8} />
+          <LogOut size={22} color={colors.textSecondary} strokeWidth={1.8} />
         </TouchableOpacity>
       </View>
 
       <View style={styles.statsRow}>
-        <View style={styles.statCard}>
-          <Text style={styles.statNumber}>{venues.length}</Text>
-          <Text style={styles.statLabel}>Venues</Text>
+        <View style={[styles.statCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
+          <Text style={[styles.statNumber, { color: colors.primary, fontFamily: Fonts.dashBold }]}>{venues.length}</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary, fontFamily: Fonts.dashRegular }]}>Venues</Text>
         </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statNumber}>{activeShows.length}</Text>
-          <Text style={styles.statLabel}>Active Shows</Text>
+        <View style={[styles.statCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
+          <Text style={[styles.statNumber, { color: colors.primary, fontFamily: Fonts.dashBold }]}>{activeShows.length}</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary, fontFamily: Fonts.dashRegular }]}>Active Shows</Text>
         </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statNumber}>{completedShows.length}</Text>
-          <Text style={styles.statLabel}>Completed</Text>
+        <View style={[styles.statCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
+          <Text style={[styles.statNumber, { color: colors.primary, fontFamily: Fonts.dashBold }]}>{completedShows.length}</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary, fontFamily: Fonts.dashRegular }]}>Completed</Text>
         </View>
       </View>
 
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>My Venues</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: Fonts.dashBold }]}>My Venues</Text>
         </View>
         {venues.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <MapPin size={32} color={Colors.textLight} strokeWidth={1.5} />
-            <Text style={styles.emptyText}>No venues yet</Text>
-            <Text style={styles.emptySubtext}>
+          <View style={[styles.emptyCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
+            <MapPin size={32} color={colors.textLight} strokeWidth={1.5} />
+            <Text style={[styles.emptyText, { color: colors.text, fontFamily: Fonts.dashMedium }]}>No venues yet</Text>
+            <Text style={[styles.emptySubtext, { color: colors.textSecondary, fontFamily: Fonts.dashRegular }]}>
               Go to Canvas tab to create your first venue
             </Text>
           </View>
         ) : (
           venues.map((venue) => (
-            <View key={venue.id} style={styles.venueCard}>
-              <Text style={styles.venueName}>{venue.name}</Text>
-              <Text style={styles.venueAddress}>{venue.address}</Text>
-              <Text style={styles.venueSeats}>
+            <View key={venue.id} style={[styles.venueCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
+              <Text style={[styles.venueName, { color: colors.text, fontFamily: Fonts.dashMedium }]}>{venue.name}</Text>
+              <Text style={[styles.venueAddress, { color: colors.textSecondary, fontFamily: Fonts.dashRegular }]}>{venue.address}</Text>
+              <Text style={[styles.venueSeats, { color: colors.primary, fontFamily: Fonts.dashMedium }]}>
                 {venue.seats?.length || 0} seats configured
               </Text>
             </View>
@@ -110,39 +111,37 @@ export default function DashboardScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Active Shows</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: Fonts.dashBold }]}>Active Shows</Text>
         {activeShows.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <Film size={32} color={Colors.textLight} strokeWidth={1.5} />
-            <Text style={styles.emptyText}>No active shows</Text>
-            <Text style={styles.emptySubtext}>
+          <View style={[styles.emptyCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
+            <Film size={32} color={colors.textLight} strokeWidth={1.5} />
+            <Text style={[styles.emptyText, { color: colors.text, fontFamily: Fonts.dashMedium }]}>No active shows</Text>
+            <Text style={[styles.emptySubtext, { color: colors.textSecondary, fontFamily: Fonts.dashRegular }]}>
               Go to Shows tab to schedule a show
             </Text>
           </View>
         ) : (
           activeShows.map((show) => (
-            <View key={show.id} style={styles.showCard}>
+            <View key={show.id} style={[styles.showCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
               <View style={styles.showHeader}>
-                <Text style={styles.showTitle}>{show.movieTitle}</Text>
+                <Text style={[styles.showTitle, { color: colors.text, fontFamily: Fonts.dashMedium }]}>{show.movieTitle}</Text>
                 <View
                   style={[
                     styles.statusBadge,
-                    show.status === 'NOW_PLAYING'
-                      ? styles.nowPlayingBadge
-                      : styles.scheduledBadge,
+                    { backgroundColor: colors.primary + '20' },
                   ]}
                 >
-                  <Text style={styles.statusText}>{show.status === 'NOW_PLAYING' ? 'Live' : 'Scheduled'}</Text>
+                  <Text style={[styles.statusText, { color: colors.primary, fontFamily: Fonts.dashMedium }]}>{show.status === 'NOW_PLAYING' ? 'Live' : 'Scheduled'}</Text>
                 </View>
               </View>
-              <Text style={styles.showTime}>
+              <Text style={[styles.showTime, { color: colors.textSecondary, fontFamily: Fonts.dashRegular }]}>
                 {new Date(show.startTime).toLocaleDateString()} at{' '}
                 {new Date(show.startTime).toLocaleTimeString([], {
                   hour: '2-digit',
                   minute: '2-digit',
                 })}
               </Text>
-              <Text style={styles.showPrice}>
+              <Text style={[styles.showPrice, { color: colors.primary, fontFamily: Fonts.dashMedium }]}>
                 {show.isFree ? 'Free Entry' : `Price: ${show.price}`}
               </Text>
             </View>
@@ -157,7 +156,6 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.surface,
   },
   headerRow: {
     flexDirection: 'row',
@@ -169,13 +167,9 @@ const styles = StyleSheet.create({
   },
   greeting: {
     fontSize: 24,
-    fontWeight: '700',
-    color: Colors.text,
   },
   role: {
     fontSize: 14,
-    color: Colors.primary,
-    fontWeight: '600',
     marginTop: 2,
   },
   logoutBtn: {
@@ -189,21 +183,16 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: Colors.white,
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.border,
   },
   statNumber: {
     fontSize: 24,
-    fontWeight: '700',
-    color: Colors.primary,
   },
   statLabel: {
     fontSize: 12,
-    color: Colors.textSecondary,
     marginTop: 4,
   },
   section: {
@@ -218,61 +207,45 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: Colors.text,
     marginBottom: 12,
   },
   emptyCard: {
-    backgroundColor: Colors.white,
     borderRadius: 12,
     padding: 32,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.border,
   },
   emptyText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text,
     marginTop: 12,
   },
   emptySubtext: {
     fontSize: 13,
-    color: Colors.textSecondary,
     marginTop: 4,
     textAlign: 'center',
   },
   venueCard: {
-    backgroundColor: Colors.white,
     borderRadius: 12,
     padding: 16,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: Colors.border,
   },
   venueName: {
     fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text,
   },
   venueAddress: {
     fontSize: 13,
-    color: Colors.textSecondary,
     marginTop: 4,
   },
   venueSeats: {
     fontSize: 12,
-    color: Colors.primary,
     marginTop: 6,
-    fontWeight: '500',
   },
   showCard: {
-    backgroundColor: Colors.white,
     borderRadius: 12,
     padding: 16,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: Colors.border,
   },
   showHeader: {
     flexDirection: 'row',
@@ -281,8 +254,6 @@ const styles = StyleSheet.create({
   },
   showTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text,
     flex: 1,
   },
   statusBadge: {
@@ -290,25 +261,15 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 8,
   },
-  nowPlayingBadge: {
-    backgroundColor: '#FFE8E3',
-  },
-  scheduledBadge: {
-    backgroundColor: '#E3F2FF',
-  },
   statusText: {
     fontSize: 11,
-    fontWeight: '600',
   },
   showTime: {
     fontSize: 13,
-    color: Colors.textSecondary,
     marginTop: 6,
   },
   showPrice: {
     fontSize: 13,
-    color: Colors.primary,
-    fontWeight: '500',
     marginTop: 4,
   },
   bottomSpacer: {

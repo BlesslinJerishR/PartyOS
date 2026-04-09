@@ -1,8 +1,27 @@
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 import { storage } from './storage';
 
-const API_URL =
-  (Constants.expoConfig?.extra?.apiUrl as string) || 'http://localhost:3000/api';
+function getApiUrl(): string {
+  const configured = Constants.expoConfig?.extra?.apiUrl as string | undefined;
+  if (configured) return configured;
+
+  // In development, derive the API host from Expo's dev server address
+  // so the app can reach the backend on the same machine.
+  if (__DEV__ && Constants.expoConfig?.hostUri) {
+    const host = Constants.expoConfig.hostUri.split(':')[0];
+    return `http://${host}:3000/api`;
+  }
+
+  // Android emulator uses 10.0.2.2 to reach the host machine
+  if (__DEV__ && Platform.OS === 'android') {
+    return 'http://10.0.2.2:3000/api';
+  }
+
+  return 'http://localhost:3000/api';
+}
+
+const API_URL = getApiUrl();
 
 async function getHeaders(): Promise<Record<string, string>> {
   const token = await storage.getToken();
