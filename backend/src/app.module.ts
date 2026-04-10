@@ -4,6 +4,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { BullModule } from '@nestjs/bullmq';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
+import { TmdbModule } from './tmdb/tmdb.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { MoviesModule } from './movies/movies.module';
@@ -30,6 +31,7 @@ import { LocationModule } from './location/location.module';
     }),
     PrismaModule,
     RedisModule,
+    TmdbModule,
     AuthModule,
     UsersModule,
     MoviesModule,

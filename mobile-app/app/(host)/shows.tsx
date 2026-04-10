@@ -10,6 +10,7 @@ import {
   Modal,
   RefreshControl,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { api } from '../../services/api';
 import { useTheme } from '../../context/AuthContext';
@@ -33,6 +34,7 @@ export default function ShowsScreen() {
   const [endTime, setEndTime] = useState('');
   const [isFree, setIsFree] = useState(true);
   const [price, setPrice] = useState('');
+  const [searching, setSearching] = useState(false);
   const { colors } = useTheme();
 
   const loadData = useCallback(async () => {
@@ -60,11 +62,20 @@ export default function ShowsScreen() {
 
   const searchMovies = async () => {
     if (!searchQuery.trim()) return;
+    setSearching(true);
     try {
       const data = (await api.movies.search(searchQuery)) as TMDBResponse;
       setMovieResults(data.results || []);
+      if (!data.results?.length) {
+        Alert.alert('No Results', 'No movies found for your search. Try a different query.');
+      }
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+      Alert.alert(
+        'Search Failed',
+        error.message || 'Could not search movies. Please try again.',
+      );
+    } finally {
+      setSearching(false);
     }
   };
 
@@ -235,8 +246,16 @@ export default function ShowsScreen() {
                 onChangeText={setSearchQuery}
                 onSubmitEditing={searchMovies}
               />
-              <TouchableOpacity style={[styles.searchBtn, { backgroundColor: colors.primary }]} onPress={searchMovies}>
-                <Search size={20} color={colors.white} strokeWidth={2} />
+              <TouchableOpacity
+                style={[styles.searchBtn, { backgroundColor: colors.primary }]}
+                onPress={searchMovies}
+                disabled={searching}
+              >
+                {searching ? (
+                  <ActivityIndicator size="small" color={colors.white} />
+                ) : (
+                  <Search size={20} color={colors.white} strokeWidth={2} />
+                )}
               </TouchableOpacity>
             </View>
 

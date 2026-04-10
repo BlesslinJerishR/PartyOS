@@ -1,0 +1,167 @@
+PartyOS - Nearby Meetups
+
+Implement a React Native expo mobile app PartyOS : Nearby Meetups
+
+A platform for Party Ticket bookings for home theatres.
+
+It should have a 3 screen onboarding with beautiful apt/related graphics of the mobile app platform. with next and skip button. It should show only once on start nad the value should be persisted in async storage
+
+It should consist these features
+
+1. User Accounts -> Sign Up and Login, Session Guards 
+Simple Username and Password
+
+2. Onboarding
+
+It should render two cards with options
+
+1. Party Host → the one organizing (party host)
+2. Party Guest → the one attending (users)
+
+2.1 If Party Host
+
+Canvas
+
+It should show a canvas config of seating
+
+User can config their canvas for their home available seating
+
+Options such as 
+Screen - Big screen in which the movie or web series plays
+4k TV or Projector 
+chair - single seat
+single sofa seat or recliner - single comfy luxurious seat
+Three seater sofa - triple comfy luxurious seat
+bed single - single sleeper bed
+bed double - double sleeper bed
+bed triple -  triple sleeper bed
+
+Based on the config in the canvas it should generate the seatings booking module for the guests to purchase ticket
+
+The canavas should be simple, clean and minimalistic with legends
+
+2.2 If Party Guest flow
+
+It shows the nearby playing shows by the host
+
+For movie list for both the Party Host and Party Gues. Render the near by playing movies of free Movie API using TMDB API
+
+Use the same TMDB movie api for the host movie config and timings
+
+3. Have a ticket Booking module for the Party Guest. Two modes one is free or paid , which can be set by the host
+
+for the guest
+
+4. Now playing nearby lists module
+5. Nearby playing soon shows module 
+6. Maps markers -> use leafletJS opensource map for the :
+a. currently playing host cluster, markers and 
+b. playing soon clusters, marker 
+Show only the uber style map for leaftletJS only black and white
+7. Request a movie by the guest to the hosts
+8. Snacks available in the host static list which can be set by the host
+9. Review of the host. Only verified reviews only (only the people who have bought ticket and saw the movie/web series or shows can review)
+
+Currently we are building mobile app + backend only. web app we will build later 
+TechStack
+
+all latest version only (Important)
+
+Frontend : React Native + expo + Typescript (both latest version only (Important))
+
+No TailwindCSS (Important). use only CSS Modules or Native CSS
+
+Don't use emojis or hiphen or underscore , - ,  _ anywhere in the frontend.
+
+Use only Lucide icons (Important).
+
+Backend : NestJS + Typescript + Fastify adapter + Prisma (all latest version only (Important))
+
+DB : Postgresql
+
+Optimization, Caching, Queues:  Redis + BullMQ
+
+make it robust and seamless. Implement end to end. make no mistakes. Do both the frontend and backend end to end. Improvise as much as needed and possible. Improvise accordingly. It should be an actual production ready enterprise grade level application. make no mistakes.
+
+This is an open source project. don't render or push or hard code any sensitive credentials in the code base. use only .env
+
+X 
+
+1. Use only the theme color
+
+Dark Theme (default) : Black background + white color text content + hero color
+Light : White background + black color text content + hero color
+
+Black color : #1d1e21 (Important)
+hero color : #FF004F (Important)
+
+Don't use anyother colors anywhere the whole app
+
+Only use Plus Jakarta Sans for the Hero text sections.
+
+Use inconsolata fonts everywhere for the whole application
+For Dashboard use Roboto Fonts only (Important)
+Keep Sun and Moon lucide icons switch in the settings/preferences theme switcher
+
+
+2. Fix THESE BUGS
+
+Android Bundled 3822ms node_modules/expo-router/entry.js (3071 modules)
+ ERROR  Style property 'width' is not supported by native animated module 
+
+ERROR LOGS
+
+I am from India and TMDB is not working in India. for the workaround in browsers i am using use secure dns cloudflare 1.1.1.1 and after that the site is accessible. is that the same problem for mobile app too. fix. TMDB request not workin. check and fix
+
+make it robust and seamless. Implement end to end. Identify edge cases and fix those edge cases too. make no mistakes. Do both the frontend and backend end to end. Improvise as much as needed and possible. Improvise accordingly. It should be an actual production ready enterprise grade level application. make no mistakes.
+
+BACKEND LOGS
+
+X
+
+1. In the whole app implement safe area context. In my phone i have three bottom tabs natively for mobile back key, home screen and recents buttons which is overlaying the real app. Fix, Implement
+2. In the venue tab instead of typing the address and lat and long. Auto fetch using mobile app native location precise permission and fill it automatically
+
+a. address
+b. latitude and longitude
+
+still user can edit the address field but have a small GPS lucide icon to fetch automatically
+
+3. In the canvas screen
+If i hold the seating it throws error Error: Body cannot be empty when content-type is set to 'applicatyion/json'
+Fix
+
+4. In seating canvas
+ In seating arrangement every legend color are same. fix. keep it unique for each legend and use different different colors
+4.1 Every box is taking single space which is wrong. fix the logic
+
+chair - single seat - 1 box
+single sofa seat or recliner - single comfy luxurious seat - 1 box
+Three seater sofa - triple comfy luxurious seat - 3 box - 3 box horizontally
+
+111
+
+bed single - single sleeper bed - 3 single box together box up and down vertically 1 x 3
+1
+1
+1
+
+bed double - double sleeper bed - 2 x 3
+
+11
+11
+11
+
+bed triple -  triple sleeper bed 3x3
+
+111
+111
+111
+
+Every together boxes are grouped together and cant be seperated but booked together
+Improvise as much as needed and improvise accordingly
+
+5. In the Party Host screen
+in the shows tab the default message it is not mobile responsive as other screen. its width is too much end to end. fix it, normalize it
+
+make it robust and seamless. Implement end to end. make no mistakes. Do both the frontend and backend end to end. Improvise as much as needed and possible. Improvise accordingly. It should be an actual production ready enterprise grade level application. make no mistakes.

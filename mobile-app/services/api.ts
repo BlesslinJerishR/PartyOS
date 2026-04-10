@@ -34,25 +34,73 @@ async function getHeaders(): Promise<Record<string, string>> {
   return headers;
 }
 
+const REQUEST_TIMEOUT_MS = 30000;
+const MAX_RETRIES = 2;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function request<T>(
   endpoint: string,
   options: RequestInit = {},
 ): Promise<T> {
   const headers = await getHeaders();
-  const response = await fetch(`${API_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      ...headers,
-      ...((options.headers as Record<string, string>) || {}),
-    },
-  });
+  let lastError: Error = new Error('Request failed');
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Request failed' }));
-    throw new Error(error.message || `HTTP ${response.status}`);
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+      const response = await fetch(`${API_URL}${endpoint}`, {
+        ...options,
+        headers: {
+          ...headers,
+          ...((options.headers as Record<string, string>) || {}),
+        },
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      // Retry on 503 Service Unavailable (backend TMDB proxy errors)
+      if (response.status === 503 && attempt < MAX_RETRIES) {
+        await sleep(1000 * (attempt + 1));
+        continue;
+      }
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ message: 'Request failed' }));
+        throw new Error(error.message || `HTTP ${response.status}`);
+      }
+
+      return response.json();
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        lastError = new Error(
+          'Request timed out. Please check your connection and try again.',
+        );
+      } else {
+        lastError = error;
+      }
+
+      // Retry on network-level failures and timeouts
+      const isRetryable =
+        error.name === 'AbortError' ||
+        error.message?.includes('Network request failed') ||
+        error.message?.includes('fetch failed');
+
+      if (isRetryable && attempt < MAX_RETRIES) {
+        await sleep(1000 * (attempt + 1));
+        continue;
+      }
+
+      break;
+    }
   }
 
-  return response.json();
+  throw lastError;
 }
 
 export const api = {
