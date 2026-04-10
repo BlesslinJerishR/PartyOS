@@ -5,6 +5,7 @@ import {
   Body,
   Param,
   UseGuards,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -26,17 +27,17 @@ export class ReviewsController {
   }
 
   @Get('host/:hostId')
-  findByHost(@Param('hostId') hostId: string) {
+  findByHost(@Param('hostId', ParseUUIDPipe) hostId: string) {
     return this.reviewsService.findByHost(hostId);
   }
 
   @Get('host/:hostId/rating')
-  getHostRating(@Param('hostId') hostId: string) {
+  getHostRating(@Param('hostId', ParseUUIDPipe) hostId: string) {
     return this.reviewsService.getHostRating(hostId);
   }
 
   @Get('show/:showId')
-  findByShow(@Param('showId') showId: string) {
+  findByShow(@Param('showId', ParseUUIDPipe) showId: string) {
     return this.reviewsService.findByShow(showId);
   }
 }

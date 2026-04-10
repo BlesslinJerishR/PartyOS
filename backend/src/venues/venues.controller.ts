@@ -8,6 +8,8 @@ import {
   Param,
   Query,
   UseGuards,
+  ParseUUIDPipe,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -42,15 +44,20 @@ export class VenuesController {
     @Query('longitude') longitude: string,
     @Query('radius') radius?: string,
   ) {
-    return this.venuesService.findNearby(
-      parseFloat(latitude),
-      parseFloat(longitude),
-      radius ? parseFloat(radius) : undefined,
-    );
+    const lat = parseFloat(latitude);
+    const lng = parseFloat(longitude);
+    if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      throw new BadRequestException('Valid latitude and longitude are required');
+    }
+    const r = radius ? parseFloat(radius) : undefined;
+    if (r !== undefined && (isNaN(r) || r <= 0 || r > 500)) {
+      throw new BadRequestException('Radius must be between 0 and 500 km');
+    }
+    return this.venuesService.findNearby(lat, lng, r);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.venuesService.findOne(id);
   }
 
@@ -58,7 +65,7 @@ export class VenuesController {
   @UseGuards(RolesGuard)
   @Roles('HOST' as any)
   update(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser('id') userId: string,
     @Body() dto: UpdateVenueDto,
   ) {
@@ -68,7 +75,7 @@ export class VenuesController {
   @Delete(':id')
   @UseGuards(RolesGuard)
   @Roles('HOST' as any)
-  remove(@Param('id') id: string, @CurrentUser('id') userId: string) {
+  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser('id') userId: string) {
     return this.venuesService.remove(id, userId);
   }
 }

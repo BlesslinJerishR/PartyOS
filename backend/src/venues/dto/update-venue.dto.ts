@@ -1,12 +1,16 @@
-import { IsString, IsNumber, IsEnum, IsOptional, Min, Max } from 'class-validator';
+import { IsString, IsNumber, IsEnum, IsOptional, Min, Max, MaxLength, MinLength } from 'class-validator';
 import { ScreenType } from '@prisma/client';
 
 export class UpdateVenueDto {
   @IsString()
+  @MinLength(1)
+  @MaxLength(100)
   @IsOptional()
   name?: string;
 
   @IsString()
+  @MinLength(1)
+  @MaxLength(300)
   @IsOptional()
   address?: string;
 

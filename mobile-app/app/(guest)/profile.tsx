@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -50,13 +50,13 @@ export default function ProfileScreen() {
     loadRequests();
   }, [loadRequests]);
 
-  const onRefresh = async () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadRequests();
     setRefreshing(false);
-  };
+  }, [loadRequests]);
 
-  const searchMovies = async () => {
+  const searchMovies = useCallback(async () => {
     if (!searchQuery.trim()) return;
     setSearching(true);
     try {

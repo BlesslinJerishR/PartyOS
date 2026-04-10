@@ -6,6 +6,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
 
@@ -14,11 +15,14 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly redisService: RedisService,
   ) {}
 
   async signup(dto: SignupDto) {
+    const normalizedUsername = dto.username.toLowerCase().trim();
+
     const existing = await this.prisma.user.findUnique({
-      where: { username: dto.username },
+      where: { username: normalizedUsername },
     });
 
     if (existing) {
@@ -29,7 +33,7 @@ export class AuthService {
 
     const user = await this.prisma.user.create({
       data: {
-        username: dto.username,
+        username: normalizedUsername,
         password: hashedPassword,
       },
     });
@@ -47,11 +51,15 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
+    const normalizedUsername = dto.username.toLowerCase().trim();
+
     const user = await this.prisma.user.findUnique({
-      where: { username: dto.username },
+      where: { username: normalizedUsername },
     });
 
     if (!user) {
+      // Perform a dummy hash to prevent timing attacks
+      await bcrypt.hash('dummy', 12);
       throw new UnauthorizedException('Invalid credentials');
     }
 

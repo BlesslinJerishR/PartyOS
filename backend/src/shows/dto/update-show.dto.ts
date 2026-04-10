@@ -4,20 +4,26 @@ import {
   IsBoolean,
   IsOptional,
   IsDateString,
-  IsEnum,
+  Min,
+  Max,
+  MaxLength,
+  MinLength,
 } from 'class-validator';
-import { ShowStatus } from '@prisma/client';
 
 export class UpdateShowDto {
   @IsNumber()
+  @Min(1)
   @IsOptional()
   tmdbMovieId?: number;
 
   @IsString()
+  @MinLength(1)
+  @MaxLength(200)
   @IsOptional()
   movieTitle?: string;
 
   @IsString()
+  @MaxLength(500)
   @IsOptional()
   moviePoster?: string;
 
@@ -34,18 +40,18 @@ export class UpdateShowDto {
   isFree?: boolean;
 
   @IsNumber()
+  @Min(0)
+  @Max(100000)
   @IsOptional()
   price?: number;
-
-  @IsEnum(ShowStatus)
-  @IsOptional()
-  status?: ShowStatus;
 
   @IsBoolean()
   @IsOptional()
   isPrivate?: boolean;
 
   @IsString()
+  @MinLength(4)
+  @MaxLength(128)
   @IsOptional()
   password?: string;
 }

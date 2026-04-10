@@ -6,6 +6,7 @@ import {
   Body,
   Param,
   UseGuards,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -38,14 +39,14 @@ export class SeatsController {
   }
 
   @Get('venue/:venueId')
-  findByVenue(@Param('venueId') venueId: string) {
+  findByVenue(@Param('venueId', ParseUUIDPipe) venueId: string) {
     return this.seatsService.findByVenue(venueId);
   }
 
   @Delete(':id')
   @UseGuards(RolesGuard)
   @Roles('HOST' as any)
-  remove(@Param('id') id: string, @CurrentUser('id') userId: string) {
+  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser('id') userId: string) {
     return this.seatsService.remove(id, userId);
   }
 }

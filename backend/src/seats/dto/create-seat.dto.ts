@@ -1,14 +1,15 @@
-import { IsString, IsNumber, IsEnum, IsOptional, Min } from 'class-validator';
+import { IsString, IsNumber, IsEnum, IsOptional, Min, MaxLength, IsUUID } from 'class-validator';
 import { SeatType } from '@prisma/client';
 
 export class CreateSeatDto {
-  @IsString()
+  @IsUUID()
   venueId: string;
 
   @IsEnum(SeatType)
   type: SeatType;
 
   @IsString()
+  @MaxLength(20)
   label: string;
 
   @IsNumber()

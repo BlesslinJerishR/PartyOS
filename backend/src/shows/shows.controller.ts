@@ -7,6 +7,8 @@ import {
   Param,
   Query,
   UseGuards,
+  ParseUUIDPipe,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -33,10 +35,16 @@ export class ShowsController {
     @Query('latitude') latitude?: string,
     @Query('longitude') longitude?: string,
   ) {
-    return this.showsService.findNowPlaying(
-      latitude ? parseFloat(latitude) : undefined,
-      longitude ? parseFloat(longitude) : undefined,
-    );
+    let lat: number | undefined;
+    let lng: number | undefined;
+    if (latitude && longitude) {
+      lat = parseFloat(latitude);
+      lng = parseFloat(longitude);
+      if (isNaN(lat) || isNaN(lng)) {
+        throw new BadRequestException('Invalid latitude or longitude');
+      }
+    }
+    return this.showsService.findNowPlaying(lat, lng);
   }
 
   @Get('upcoming')
@@ -44,10 +52,16 @@ export class ShowsController {
     @Query('latitude') latitude?: string,
     @Query('longitude') longitude?: string,
   ) {
-    return this.showsService.findUpcoming(
-      latitude ? parseFloat(latitude) : undefined,
-      longitude ? parseFloat(longitude) : undefined,
-    );
+    let lat: number | undefined;
+    let lng: number | undefined;
+    if (latitude && longitude) {
+      lat = parseFloat(latitude);
+      lng = parseFloat(longitude);
+      if (isNaN(lat) || isNaN(lng)) {
+        throw new BadRequestException('Invalid latitude or longitude');
+      }
+    }
+    return this.showsService.findUpcoming(lat, lng);
   }
 
   @Get('my')
@@ -63,7 +77,7 @@ export class ShowsController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.showsService.findOne(id);
   }
 
@@ -71,7 +85,7 @@ export class ShowsController {
   @UseGuards(RolesGuard)
   @Roles('HOST' as any)
   update(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser('id') userId: string,
     @Body() dto: UpdateShowDto,
   ) {
@@ -81,7 +95,7 @@ export class ShowsController {
   @Patch(':id/cancel')
   @UseGuards(RolesGuard)
   @Roles('HOST' as any)
-  cancel(@Param('id') id: string, @CurrentUser('id') userId: string) {
+  cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUser('id') userId: string) {
     return this.showsService.cancel(id, userId);
   }
 }

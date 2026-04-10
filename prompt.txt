@@ -230,3 +230,13 @@ Completely optimize the backend also end to end like a Enterprise Grade level ap
 Don't change any business logics or Ui/Ux
 
 Optimize the whole application end to end like a industry standard enterprise grade level application and give the performance improvements report at last. make no mistakes
+
+x
+
+# CYBERSECURITY
+
+You are an expirenced cyber security engineer and ethical hacker. Analyze my code base completely. find for common famous vulnerabilities and exploitation in our web app and fix everything completely.
+
+# 0 Mistakes + Edge Cases Fix
+
+Identify edge cases and fix those edge cases too. make it robust and seamless. Implement end to end. make no mistakes. Do both the frontend and backend end to end. Improvise as much as needed and possible. Improvise accordingly. It should be an actual production ready enterprise grade level application. make no mistakes.

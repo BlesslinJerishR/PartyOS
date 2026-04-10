@@ -1,17 +1,32 @@
-import { IsString, IsArray, ValidateNested } from 'class-validator';
+import { IsString, IsArray, ValidateNested, IsEnum, IsNumber, IsOptional, Min, MaxLength } from 'class-validator';
 import { Type } from 'class-transformer';
-import { CreateSeatDto } from './create-seat.dto';
+import { SeatType } from '@prisma/client';
+import { IsUUID } from 'class-validator';
 
 class SeatItem {
-  type: any;
+  @IsEnum(SeatType)
+  type: SeatType;
+
+  @IsString()
+  @MaxLength(20)
   label: string;
+
+  @IsNumber()
+  @Min(0)
   row: number;
+
+  @IsNumber()
+  @Min(0)
   col: number;
+
+  @IsNumber()
+  @Min(1)
+  @IsOptional()
   capacity?: number;
 }
 
 export class BatchCreateSeatsDto {
-  @IsString()
+  @IsUUID()
   venueId: string;
 
   @IsArray()

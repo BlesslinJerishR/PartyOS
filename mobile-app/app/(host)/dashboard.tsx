@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -39,21 +39,21 @@ export default function DashboardScreen() {
     loadData();
   }, [loadData]);
 
-  const onRefresh = async () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadData();
     setRefreshing(false);
-  };
+  }, [loadData]);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     await logout();
     router.replace('/(auth)/login');
-  };
+  }, [logout]);
 
-  const activeShows = shows.filter(
+  const activeShows = useMemo(() => shows.filter(
     (s) => s.status === 'NOW_PLAYING' || s.status === 'SCHEDULED',
-  );
-  const completedShows = shows.filter((s) => s.status === 'COMPLETED');
+  ), [shows]);
+  const completedShows = useMemo(() => shows.filter((s) => s.status === 'COMPLETED'), [shows]);
 
   return (
     <ScrollView

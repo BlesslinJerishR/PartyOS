@@ -5,14 +5,18 @@ import {
 } from '@nestjs/common';
 import { MovieRequestStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 import { CreateMovieRequestDto } from './dto/create-movie-request.dto';
 
 @Injectable()
 export class MovieRequestsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redisService: RedisService,
+  ) {}
 
   async create(guestId: string, dto: CreateMovieRequestDto) {
-    return this.prisma.movieRequest.create({
+    const request = await this.prisma.movieRequest.create({
       data: {
         guestId,
         hostId: dto.hostId,
@@ -24,26 +28,46 @@ export class MovieRequestsService {
         guest: { select: { id: true, username: true } },
       },
     });
+
+    await Promise.all([
+      this.redisService.del(`movie-requests:host:${dto.hostId}`),
+      this.redisService.del(`movie-requests:guest:${guestId}`),
+    ]);
+    return request;
   }
 
   async findByHost(hostId: string) {
-    return this.prisma.movieRequest.findMany({
+    const cacheKey = `movie-requests:host:${hostId}`;
+    const cached = await this.redisService.get(cacheKey);
+    if (cached) return JSON.parse(cached);
+
+    const requests = await this.prisma.movieRequest.findMany({
       where: { hostId },
       include: {
         guest: { select: { id: true, username: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    await this.redisService.set(cacheKey, JSON.stringify(requests), 300);
+    return requests;
   }
 
   async findByGuest(guestId: string) {
-    return this.prisma.movieRequest.findMany({
+    const cacheKey = `movie-requests:guest:${guestId}`;
+    const cached = await this.redisService.get(cacheKey);
+    if (cached) return JSON.parse(cached);
+
+    const requests = await this.prisma.movieRequest.findMany({
       where: { guestId },
       include: {
         host: { select: { id: true, username: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    await this.redisService.set(cacheKey, JSON.stringify(requests), 300);
+    return requests;
   }
 
   async updateStatus(
@@ -58,12 +82,18 @@ export class MovieRequestsService {
     if (!request) throw new NotFoundException('Request not found');
     if (request.hostId !== hostId) throw new ForbiddenException();
 
-    return this.prisma.movieRequest.update({
+    const updated = await this.prisma.movieRequest.update({
       where: { id },
       data: { status },
       include: {
         guest: { select: { id: true, username: true } },
       },
     });
+
+    await Promise.all([
+      this.redisService.del(`movie-requests:host:${hostId}`),
+      this.redisService.del(`movie-requests:guest:${request.guestId}`),
+    ]);
+    return updated;
   }
 }

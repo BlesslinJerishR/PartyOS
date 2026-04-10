@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from '../services/api';
 import { storage } from '../services/storage';
@@ -118,8 +118,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setState((prev) => ({ ...prev, user: updated }));
   }, []);
 
+  const contextValue = useMemo<AuthContextValue>(() => ({
+    ...state,
+    ...themeState,
+    login,
+    signup,
+    logout,
+    setRole,
+    toggleTheme,
+  }), [state, themeState, login, signup, logout, setRole, toggleTheme]);
+
   return (
-    <AuthContext.Provider value={{ ...state, ...themeState, login, signup, logout, setRole, toggleTheme }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

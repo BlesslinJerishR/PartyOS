@@ -5,8 +5,8 @@ import {
   Body,
   UseGuards,
   Query,
+  BadRequestException,
 } from '@nestjs/common';
-import { UserRole } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UsersService } from './users.service';
@@ -46,15 +46,21 @@ export class UsersController {
     @Query('longitude') longitude: string,
     @Query('radius') radius?: string,
   ) {
-    return this.usersService.getNearbyHosts(
-      parseFloat(latitude),
-      parseFloat(longitude),
-      radius ? parseFloat(radius) : undefined,
-    );
+    const lat = parseFloat(latitude);
+    const lng = parseFloat(longitude);
+    if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      throw new BadRequestException('Valid latitude and longitude are required');
+    }
+    const r = radius ? parseFloat(radius) : undefined;
+    if (r !== undefined && (isNaN(r) || r <= 0 || r > 500)) {
+      throw new BadRequestException('Radius must be between 0 and 500 km');
+    }
+    return this.usersService.getNearbyHosts(lat, lng, r);
   }
 
   @Get('search-hosts')
   searchHosts(@Query('q') query: string) {
-    return this.usersService.searchHosts(query || '');
+    const q = (query || '').trim().slice(0, 50);
+    return this.usersService.searchHosts(q);
   }
 }

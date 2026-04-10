@@ -6,6 +6,7 @@ import {
   Body,
   Param,
   UseGuards,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -32,21 +33,21 @@ export class TicketsController {
   }
 
   @Get('show/:showId')
-  findByShow(@Param('showId') showId: string) {
+  findByShow(@Param('showId', ParseUUIDPipe) showId: string) {
     return this.ticketsService.findByShow(showId);
   }
 
   @Patch(':id/cancel')
   @UseGuards(RolesGuard)
   @Roles('GUEST' as any)
-  cancel(@Param('id') id: string, @CurrentUser('id') userId: string) {
+  cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUser('id') userId: string) {
     return this.ticketsService.cancel(id, userId);
   }
 
   @Patch(':id/check-in')
   @UseGuards(RolesGuard)
   @Roles('HOST' as any)
-  checkIn(@Param('id') id: string, @CurrentUser('id') userId: string) {
+  checkIn(@Param('id', ParseUUIDPipe) id: string, @CurrentUser('id') userId: string) {
     return this.ticketsService.checkIn(id, userId);
   }
 }

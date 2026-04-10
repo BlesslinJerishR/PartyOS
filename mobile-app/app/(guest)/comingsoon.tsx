@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
+  FlatList,
   TouchableOpacity,
   Image,
   RefreshControl,
@@ -16,6 +16,67 @@ import { useTheme } from '../../context/AuthContext';
 import { Fonts } from '../../constants/Fonts';
 import { Show } from '../../types';
 import { Calendar, Clock, MapPin, Lock } from 'lucide-react-native';
+
+function getTimeUntil(dateStr: string) {
+  const now = new Date();
+  const then = new Date(dateStr);
+  const diff = then.getTime() - now.getTime();
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const days = Math.floor(hours / 24);
+  if (days > 0) return `${days}d ${hours % 24}h`;
+  if (hours > 0) return `${hours}h`;
+  return 'Soon';
+}
+
+const ShowCard = memo(function ShowCard({ show, colors, onPress }: { show: Show; colors: any; onPress: (id: string) => void }) {
+  return (
+    <TouchableOpacity
+      style={[styles.showCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+      onPress={() => onPress(show.id)}
+    >
+      {show.moviePoster && (
+        <View style={styles.posterContainer}>
+          <Image source={{ uri: show.moviePoster, cache: 'force-cache' }} style={styles.poster} resizeMode="cover" />
+        </View>
+      )}
+      <View style={styles.showInfo}>
+        <View style={[styles.countdownBadge, { backgroundColor: colors.primary + '20' }]}>
+          <Text style={[styles.countdownText, { color: colors.primary, fontFamily: Fonts.bold }]}>
+            {getTimeUntil(show.startTime)}
+          </Text>
+        </View>
+        <Text style={[styles.movieTitle, { color: colors.text, fontFamily: Fonts.semiBold }]}>{show.movieTitle}</Text>
+        <View style={styles.metaRow}>
+          <Calendar size={14} color={colors.textSecondary} strokeWidth={1.8} />
+          <Text style={[styles.metaText, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>
+            {new Date(show.startTime).toLocaleDateString()}
+          </Text>
+        </View>
+        <View style={styles.metaRow}>
+          <Clock size={14} color={colors.textSecondary} strokeWidth={1.8} />
+          <Text style={[styles.metaText, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>
+            {new Date(show.startTime).toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
+          </Text>
+        </View>
+        {show.venue && (
+          <View style={styles.metaRow}>
+            <MapPin size={14} color={colors.textSecondary} strokeWidth={1.8} />
+            <Text style={[styles.metaText, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>{show.venue.name}</Text>
+          </View>
+        )}
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          {show.isPrivate && <Lock size={12} color={colors.primary} strokeWidth={2} style={{ marginRight: 4 }} />}
+          <Text style={[styles.price, { color: colors.primary, fontFamily: Fonts.semiBold }]}>
+            {show.isFree ? 'Free Entry' : `${show.price}`}
+          </Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+});
 
 export default function ComingSoonScreen() {
   const [shows, setShows] = useState<Show[]>([]);
@@ -49,22 +110,34 @@ export default function ComingSoonScreen() {
     loadShows();
   }, [loadShows]);
 
-  const onRefresh = async () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadShows();
     setRefreshing(false);
-  };
+  }, [loadShows]);
 
-  const getTimeUntil = (dateStr: string) => {
-    const now = new Date();
-    const then = new Date(dateStr);
-    const diff = then.getTime() - now.getTime();
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const days = Math.floor(hours / 24);
-    if (days > 0) return `${days}d ${hours % 24}h`;
-    if (hours > 0) return `${hours}h`;
-    return 'Soon';
-  };
+  const handlePress = useCallback((id: string) => {
+    router.push(`/showdetail/${id}`);
+  }, [router]);
+
+  const keyExtractor = useCallback((item: Show) => item.id, []);
+
+  const renderItem = useCallback(({ item }: { item: Show }) => (
+    <ShowCard show={item} colors={colors} onPress={handlePress} />
+  ), [colors, handlePress]);
+
+  const ListHeader = useMemo(() => (
+    <Text style={[styles.heading, { color: colors.text, fontFamily: Fonts.hero }]}>Coming Soon</Text>
+  ), [colors.text]);
+
+  const ListEmpty = useMemo(() => (
+    <View style={styles.emptyState}>
+      <Text style={[styles.emptyTitle, { color: colors.text, fontFamily: Fonts.semiBold }]}>No Upcoming Shows</Text>
+      <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>
+        New shows will appear here when hosts schedule them
+      </Text>
+    </View>
+  ), [colors.text, colors.textSecondary]);
 
   if (loading) {
     return (
@@ -75,70 +148,19 @@ export default function ComingSoonScreen() {
   }
 
   return (
-    <ScrollView
+    <FlatList
+      data={shows}
+      renderItem={renderItem}
+      keyExtractor={keyExtractor}
       style={[styles.container, { backgroundColor: colors.surface }]}
+      ListHeaderComponent={ListHeader}
+      ListEmptyComponent={ListEmpty}
+      ListFooterComponent={<View style={styles.bottomSpacer} />}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-    >
-      <Text style={[styles.heading, { color: colors.text, fontFamily: Fonts.hero }]}>Coming Soon</Text>
-      {shows.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Text style={[styles.emptyTitle, { color: colors.text, fontFamily: Fonts.semiBold }]}>No Upcoming Shows</Text>
-          <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>
-            New shows will appear here when hosts schedule them
-          </Text>
-        </View>
-      ) : (
-        shows.map((show) => (
-          <TouchableOpacity
-            key={show.id}
-            style={[styles.showCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
-            onPress={() => router.push(`/showdetail/${show.id}`)}  
-          >
-            {show.moviePoster && (
-              <View style={styles.posterContainer}>
-                <Image source={{ uri: show.moviePoster }} style={styles.poster} resizeMode="cover" />
-              </View>
-            )}
-            <View style={styles.showInfo}>
-              <View style={[styles.countdownBadge, { backgroundColor: colors.primary + '20' }]}>
-                <Text style={[styles.countdownText, { color: colors.primary, fontFamily: Fonts.bold }]}>
-                  {getTimeUntil(show.startTime)}
-                </Text>
-              </View>
-              <Text style={[styles.movieTitle, { color: colors.text, fontFamily: Fonts.semiBold }]}>{show.movieTitle}</Text>
-              <View style={styles.metaRow}>
-                <Calendar size={14} color={colors.textSecondary} strokeWidth={1.8} />
-                <Text style={[styles.metaText, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>
-                  {new Date(show.startTime).toLocaleDateString()}
-                </Text>
-              </View>
-              <View style={styles.metaRow}>
-                <Clock size={14} color={colors.textSecondary} strokeWidth={1.8} />
-                <Text style={[styles.metaText, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>
-                  {new Date(show.startTime).toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </Text>
-              </View>
-              {show.venue && (
-                <View style={styles.metaRow}>
-                  <MapPin size={14} color={colors.textSecondary} strokeWidth={1.8} />
-                  <Text style={[styles.metaText, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>{show.venue.name}</Text>
-                </View>
-              )}
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                {show.isPrivate && <Lock size={12} color={colors.primary} strokeWidth={2} style={{ marginRight: 4 }} />}
-                <Text style={[styles.price, { color: colors.primary, fontFamily: Fonts.semiBold }]}>
-                  {show.isFree ? 'Free Entry' : `${show.price}`}
-                </Text>
-              </View>
-            </View>
-          </TouchableOpacity>
-        ))
-      )}
-      <View style={styles.bottomSpacer} />
-    </ScrollView>
+      removeClippedSubviews
+      maxToRenderPerBatch={10}
+      windowSize={5}
+    />
   );
 }
 

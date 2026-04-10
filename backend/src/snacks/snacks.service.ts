@@ -4,17 +4,21 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 import { CreateSnackDto } from './dto/create-snack.dto';
 import { UpdateSnackDto } from './dto/update-snack.dto';
 
 @Injectable()
 export class SnacksService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redisService: RedisService,
+  ) {}
 
   async create(hostId: string, dto: CreateSnackDto) {
     await this.verifyVenueOwnership(dto.venueId, hostId);
 
-    return this.prisma.snack.create({
+    const snack = await this.prisma.snack.create({
       data: {
         venueId: dto.venueId,
         name: dto.name,
@@ -23,13 +27,23 @@ export class SnacksService {
         available: dto.available ?? true,
       },
     });
+
+    await this.redisService.del(`snacks:venue:${dto.venueId}`);
+    return snack;
   }
 
   async findByVenue(venueId: string) {
-    return this.prisma.snack.findMany({
+    const cacheKey = `snacks:venue:${venueId}`;
+    const cached = await this.redisService.get(cacheKey);
+    if (cached) return JSON.parse(cached);
+
+    const snacks = await this.prisma.snack.findMany({
       where: { venueId },
       orderBy: { name: 'asc' },
     });
+
+    await this.redisService.set(cacheKey, JSON.stringify(snacks), 600);
+    return snacks;
   }
 
   async update(id: string, hostId: string, dto: UpdateSnackDto) {
@@ -41,10 +55,13 @@ export class SnacksService {
     if (!snack) throw new NotFoundException('Snack not found');
     if (snack.venue.hostId !== hostId) throw new ForbiddenException();
 
-    return this.prisma.snack.update({
+    const updated = await this.prisma.snack.update({
       where: { id },
       data: dto,
     });
+
+    await this.redisService.del(`snacks:venue:${snack.venueId}`);
+    return updated;
   }
 
   async remove(id: string, hostId: string) {
@@ -56,7 +73,9 @@ export class SnacksService {
     if (!snack) throw new NotFoundException('Snack not found');
     if (snack.venue.hostId !== hostId) throw new ForbiddenException();
 
-    return this.prisma.snack.delete({ where: { id } });
+    const deleted = await this.prisma.snack.delete({ where: { id } });
+    await this.redisService.del(`snacks:venue:${snack.venueId}`);
+    return deleted;
   }
 
   private async verifyVenueOwnership(venueId: string, hostId: string) {

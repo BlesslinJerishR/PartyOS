@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -61,7 +61,7 @@ export default function BookingScreen() {
     loadData();
   }, [loadData]);
 
-  const handleBook = async () => {
+  const handleBook = useCallback(async () => {
     if (!selectedSeatId || !id) return;
 
     if (show?.isPrivate && !showPassword.trim()) {
@@ -80,7 +80,7 @@ export default function BookingScreen() {
     } finally {
       setBooking(false);
     }
-  };
+  }, [selectedSeatId, id, show?.isPrivate, showPassword, router]);
 
   if (loading || !show) {
     return (
@@ -90,14 +90,14 @@ export default function BookingScreen() {
     );
   }
 
-  const maxRow = seats.length > 0
+  const maxRow = useMemo(() => seats.length > 0
     ? Math.max(...seats.map((s) => s.row + SEAT_DIMENSIONS[s.type].rows - 1), 0)
-    : 0;
-  const maxCol = seats.length > 0
+    : 0, [seats]);
+  const maxCol = useMemo(() => seats.length > 0
     ? Math.max(...seats.map((s) => s.col + SEAT_DIMENSIONS[s.type].cols - 1), 0)
-    : 0;
+    : 0, [seats]);
 
-  const selectedSeat = seats.find((s) => s.id === selectedSeatId);
+  const selectedSeat = useMemo(() => seats.find((s) => s.id === selectedSeatId), [seats, selectedSeatId]);
 
   const getOccupiedCells = (): Set<string> => {
     const occupied = new Set<string>();

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -32,22 +32,22 @@ export default function RequestsScreen() {
     loadRequests();
   }, [loadRequests]);
 
-  const onRefresh = async () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadRequests();
     setRefreshing(false);
-  };
+  }, [loadRequests]);
 
-  const handleAccept = async (id: string) => {
+  const handleAccept = useCallback(async (id: string) => {
     try {
       await api.movieRequests.accept(id);
       await loadRequests();
     } catch (error: any) {
       Alert.alert('Error', error.message);
     }
-  };
+  }, [loadRequests]);
 
-  const handleDecline = async (id: string) => {
+  const handleDecline = useCallback(async (id: string) => {
     try {
       await api.movieRequests.decline(id);
       await loadRequests();
@@ -56,8 +56,8 @@ export default function RequestsScreen() {
     }
   };
 
-  const pending = requests.filter((r) => r.status === 'PENDING');
-  const handled = requests.filter((r) => r.status !== 'PENDING');
+  const pending = useMemo(() => requests.filter((r) => r.status === 'PENDING'), [requests]);
+  const handled = useMemo(() => requests.filter((r) => r.status !== 'PENDING'), [requests]);
 
   return (
     <ScrollView

@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
@@ -18,6 +19,15 @@ export class ShowsService {
     private readonly redisService: RedisService,
     @InjectQueue('shows') private readonly showsQueue: Queue,
   ) {}
+
+  private safeParse<T>(json: string | null): T | null {
+    if (!json) return null;
+    try {
+      return JSON.parse(json) as T;
+    } catch {
+      return null;
+    }
+  }
 
   private stripPassword<T extends Record<string, any>>(show: T): Omit<T, 'password'> {
     if (!show) return show;
@@ -36,6 +46,25 @@ export class ShowsService {
     if (!venue) throw new NotFoundException('Venue not found');
     if (venue.hostId !== hostId) throw new ForbiddenException();
 
+    const startTime = new Date(dto.startTime);
+    const endTime = new Date(dto.endTime);
+    const now = new Date();
+
+    if (startTime < now) {
+      throw new BadRequestException('Start time must be in the future');
+    }
+    if (endTime <= startTime) {
+      throw new BadRequestException('End time must be after start time');
+    }
+    const durationMs = endTime.getTime() - startTime.getTime();
+    if (durationMs > 12 * 60 * 60 * 1000) {
+      throw new BadRequestException('Show duration cannot exceed 12 hours');
+    }
+
+    if (dto.isPrivate && !dto.password) {
+      throw new BadRequestException('Private shows require a password');
+    }
+
     const hashedPassword =
       dto.isPrivate && dto.password
         ? await bcrypt.hash(dto.password, 10)
@@ -47,8 +76,8 @@ export class ShowsService {
         tmdbMovieId: dto.tmdbMovieId,
         movieTitle: dto.movieTitle,
         moviePoster: dto.moviePoster,
-        startTime: new Date(dto.startTime),
-        endTime: new Date(dto.endTime),
+        startTime,
+        endTime,
         isFree: dto.isFree ?? false,
         price: dto.price ?? 0,
         isPrivate: dto.isPrivate ?? false,
@@ -63,7 +92,7 @@ export class ShowsService {
       },
     });
 
-    const startDelay = new Date(dto.startTime).getTime() - Date.now();
+    const startDelay = startTime.getTime() - Date.now();
     if (startDelay > 0) {
       await this.showsQueue.add(
         'update-status',
@@ -72,7 +101,7 @@ export class ShowsService {
       );
     }
 
-    const endDelay = new Date(dto.endTime).getTime() - Date.now();
+    const endDelay = endTime.getTime() - Date.now();
     if (endDelay > 0) {
       await this.showsQueue.add(
         'update-status',
@@ -87,8 +116,8 @@ export class ShowsService {
 
   async findNowPlaying(latitude?: number, longitude?: number) {
     const cacheKey = `shows:now_playing:${latitude}:${longitude}`;
-    const cached = await this.redisService.get(cacheKey);
-    if (cached) return JSON.parse(cached);
+    const cached = this.safeParse(await this.redisService.get(cacheKey));
+    if (cached) return cached;
 
     const now = new Date();
     const shows = await this.prisma.show.findMany({
@@ -108,14 +137,15 @@ export class ShowsService {
       orderBy: { startTime: 'asc' },
     });
 
-    await this.redisService.set(cacheKey, JSON.stringify(shows), 300);
-    return shows;
+    const stripped = this.stripPasswords(shows);
+    await this.redisService.set(cacheKey, JSON.stringify(stripped), 120);
+    return stripped;
   }
 
   async findUpcoming(latitude?: number, longitude?: number) {
     const cacheKey = `shows:upcoming:${latitude}:${longitude}`;
-    const cached = await this.redisService.get(cacheKey);
-    if (cached) return JSON.parse(cached);
+    const cached = this.safeParse(await this.redisService.get(cacheKey));
+    if (cached) return cached;
 
     const now = new Date();
     const shows = await this.prisma.show.findMany({
@@ -134,12 +164,17 @@ export class ShowsService {
       orderBy: { startTime: 'asc' },
     });
 
-    await this.redisService.set(cacheKey, JSON.stringify(shows), 300);
-    return shows;
+    const stripped = this.stripPasswords(shows);
+    await this.redisService.set(cacheKey, JSON.stringify(stripped), 300);
+    return stripped;
   }
 
   async findByHost(hostId: string) {
-    return this.prisma.show.findMany({
+    const cacheKey = `shows:host:${hostId}`;
+    const cached = this.safeParse(await this.redisService.get(cacheKey));
+    if (cached) return cached;
+
+    const shows = await this.prisma.show.findMany({
       where: { venue: { hostId } },
       include: {
         venue: true,
@@ -147,6 +182,10 @@ export class ShowsService {
       },
       orderBy: { startTime: 'desc' },
     });
+
+    const stripped = this.stripPasswords(shows);
+    await this.redisService.set(cacheKey, JSON.stringify(stripped), 120);
+    return stripped;
   }
 
   async findOne(id: string) {
@@ -184,17 +223,30 @@ export class ShowsService {
     if (!show) throw new NotFoundException('Show not found');
     if (show.venue.hostId !== hostId) throw new ForbiddenException();
 
-    const updateData: any = {
-      ...dto,
-      startTime: dto.startTime ? new Date(dto.startTime) : undefined,
-      endTime: dto.endTime ? new Date(dto.endTime) : undefined,
-    };
+    if (show.status !== 'SCHEDULED') {
+      throw new BadRequestException('Only scheduled shows can be updated');
+    }
 
-    // Handle password for private shows
+    const updateData: Record<string, any> = {};
+
+    if (dto.tmdbMovieId !== undefined) updateData.tmdbMovieId = dto.tmdbMovieId;
+    if (dto.movieTitle !== undefined) updateData.movieTitle = dto.movieTitle;
+    if (dto.moviePoster !== undefined) updateData.moviePoster = dto.moviePoster;
+    if (dto.isFree !== undefined) updateData.isFree = dto.isFree;
+    if (dto.price !== undefined) updateData.price = dto.price;
+    if (dto.isPrivate !== undefined) updateData.isPrivate = dto.isPrivate;
+
+    if (dto.startTime) updateData.startTime = new Date(dto.startTime);
+    if (dto.endTime) updateData.endTime = new Date(dto.endTime);
+
+    const effectiveStart = updateData.startTime || show.startTime;
+    const effectiveEnd = updateData.endTime || show.endTime;
+    if (effectiveEnd <= effectiveStart) {
+      throw new BadRequestException('End time must be after start time');
+    }
+
     if (dto.password) {
       updateData.password = await bcrypt.hash(dto.password, 10);
-    } else {
-      delete updateData.password;
     }
     if (dto.isPrivate === false) {
       updateData.password = null;
@@ -217,18 +269,22 @@ export class ShowsService {
     if (!show) throw new NotFoundException('Show not found');
     if (show.venue.hostId !== hostId) throw new ForbiddenException();
 
+    if (show.status === 'COMPLETED' || show.status === 'CANCELLED') {
+      throw new BadRequestException(`Cannot cancel a ${show.status.toLowerCase()} show`);
+    }
+
     const result = await this.prisma.show.update({
       where: { id },
       data: { status: 'CANCELLED' },
     });
 
     await this.redisService.delPattern('shows:*');
-    return result;
+    return this.stripPassword(result);
   }
 
   async getMapMarkers() {
-    const cached = await this.redisService.get('shows:markers');
-    if (cached) return JSON.parse(cached);
+    const cached = this.safeParse(await this.redisService.get('shows:markers'));
+    if (cached) return cached;
 
     const now = new Date();
 

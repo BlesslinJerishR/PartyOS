@@ -1,14 +1,27 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 import { CreateVenueDto } from './dto/create-venue.dto';
 import { UpdateVenueDto } from './dto/update-venue.dto';
 
 @Injectable()
 export class VenuesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redisService: RedisService,
+  ) {}
+
+  private safeParse<T>(json: string | null): T | null {
+    if (!json) return null;
+    try {
+      return JSON.parse(json) as T;
+    } catch {
+      return null;
+    }
+  }
 
   async create(hostId: string, dto: CreateVenueDto) {
-    return this.prisma.venue.create({
+    const venue = await this.prisma.venue.create({
       data: {
         hostId,
         name: dto.name,
@@ -19,16 +32,30 @@ export class VenuesService {
       },
       include: { seats: true },
     });
+
+    await this.redisService.delPattern('venues:*');
+    return venue;
   }
 
   async findAllByHost(hostId: string) {
-    return this.prisma.venue.findMany({
+    const cacheKey = `venues:host:${hostId}`;
+    const cached = this.safeParse(await this.redisService.get(cacheKey));
+    if (cached) return cached;
+
+    const venues = await this.prisma.venue.findMany({
       where: { hostId },
       include: { seats: true, _count: { select: { shows: true } } },
     });
+
+    await this.redisService.set(cacheKey, JSON.stringify(venues), 300);
+    return venues;
   }
 
   async findOne(id: string) {
+    const cacheKey = `venues:detail:${id}`;
+    const cached = this.safeParse(await this.redisService.get(cacheKey));
+    if (cached) return cached;
+
     const venue = await this.prisma.venue.findUnique({
       where: { id },
       include: {
@@ -39,6 +66,8 @@ export class VenuesService {
     });
 
     if (!venue) throw new NotFoundException('Venue not found');
+
+    await this.redisService.set(cacheKey, JSON.stringify(venue), 600);
     return venue;
   }
 
@@ -47,11 +76,14 @@ export class VenuesService {
     if (!venue) throw new NotFoundException('Venue not found');
     if (venue.hostId !== hostId) throw new ForbiddenException();
 
-    return this.prisma.venue.update({
+    const result = await this.prisma.venue.update({
       where: { id },
       data: dto,
       include: { seats: true },
     });
+
+    await this.redisService.delPattern('venues:*');
+    return result;
   }
 
   async remove(id: string, hostId: string) {
@@ -59,10 +91,17 @@ export class VenuesService {
     if (!venue) throw new NotFoundException('Venue not found');
     if (venue.hostId !== hostId) throw new ForbiddenException();
 
-    return this.prisma.venue.delete({ where: { id } });
+    const result = await this.prisma.venue.delete({ where: { id } });
+    await this.redisService.delPattern('venues:*');
+    return result;
   }
 
   async findNearby(latitude: number, longitude: number, radiusKm: number = 50) {
+    const clampedRadius = Math.min(Math.max(radiusKm, 1), 500);
+    const cacheKey = `venues:nearby:${latitude.toFixed(2)}:${longitude.toFixed(2)}:${clampedRadius}`;
+    const cached = this.safeParse(await this.redisService.get(cacheKey));
+    if (cached) return cached;
+
     const venues = await this.prisma.venue.findMany({
       include: {
         host: { select: { id: true, username: true } },
@@ -70,24 +109,21 @@ export class VenuesService {
       },
     });
 
-    return venues.filter((venue) => {
-      const distance = this.calculateDistance(
-        latitude,
-        longitude,
-        venue.latitude,
-        venue.longitude,
-      );
-      return distance <= radiusKm;
-    }).map((venue) => ({
-      ...venue,
-      distance: this.calculateDistance(
-        latitude,
-        longitude,
-        venue.latitude,
-        venue.longitude,
-      ),
-    }))
-    .sort((a, b) => a.distance - b.distance);
+    const result = venues
+      .map((venue) => ({
+        ...venue,
+        distance: this.calculateDistance(
+          latitude,
+          longitude,
+          venue.latitude,
+          venue.longitude,
+        ),
+      }))
+      .filter((venue) => venue.distance <= clampedRadius)
+      .sort((a, b) => a.distance - b.distance);
+
+    await this.redisService.set(cacheKey, JSON.stringify(result), 120);
+    return result;
   }
 
   private calculateDistance(

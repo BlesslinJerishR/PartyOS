@@ -2,6 +2,47 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { storage } from './storage';
 
+// ── In-memory response cache ──────────────────────────────────────
+interface CacheEntry<T = unknown> {
+  data: T;
+  expiry: number;
+}
+
+const responseCache = new Map<string, CacheEntry>();
+const DEFAULT_CACHE_TTL = 30_000; // 30 seconds
+
+function getCached<T>(key: string): T | null {
+  const entry = responseCache.get(key);
+  if (!entry) return null;
+  if (Date.now() > entry.expiry) {
+    responseCache.delete(key);
+    return null;
+  }
+  return entry.data as T;
+}
+
+function setCache<T>(key: string, data: T, ttl: number = DEFAULT_CACHE_TTL): void {
+  responseCache.set(key, { data, expiry: Date.now() + ttl });
+  // Evict stale entries when cache grows large
+  if (responseCache.size > 200) {
+    const now = Date.now();
+    for (const [k, v] of responseCache) {
+      if (now > v.expiry) responseCache.delete(k);
+    }
+  }
+}
+
+function invalidateCache(pattern: string): void {
+  for (const key of responseCache.keys()) {
+    if (key.includes(pattern)) responseCache.delete(key);
+  }
+}
+
+function clearCache(): void {
+  responseCache.clear();
+}
+
+// ── API URL resolution ────────────────────────────────────────────
 function getApiUrl(): string {
   const configured = Constants.expoConfig?.extra?.apiUrl as string | undefined;
   if (configured) return configured;
@@ -106,6 +147,8 @@ async function request<T>(
 }
 
 export const api = {
+  clearCache,
+
   auth: {
     signup(username: string, password: string) {
       return request('/auth/signup', {
@@ -123,15 +166,21 @@ export const api = {
 
   users: {
     getProfile() {
-      return request('/users/me');
+      const key = '/users/me';
+      const cached = getCached(key);
+      if (cached) return Promise.resolve(cached);
+      return request(key).then((data) => { setCache(key, data, 60_000); return data; });
     },
     setRole(role: string) {
+      invalidateCache('/users/');
       return request('/users/role', {
         method: 'PATCH',
         body: JSON.stringify({ role }),
       });
     },
     updateLocation(latitude: number, longitude: number) {
+      invalidateCache('/users/');
+      invalidateCache('/location/');
       return request('/users/location', {
         method: 'PATCH',
         body: JSON.stringify({ latitude, longitude }),
@@ -144,84 +193,135 @@ export const api = {
 
   movies: {
     getNowPlaying(page = 1) {
-      return request(`/movies/now-playing?page=${page}`);
+      const key = `/movies/now-playing?page=${page}`;
+      const cached = getCached(key);
+      if (cached) return Promise.resolve(cached);
+      return request(key).then((data) => { setCache(key, data, 120_000); return data; });
     },
     getUpcoming(page = 1) {
-      return request(`/movies/upcoming?page=${page}`);
+      const key = `/movies/upcoming?page=${page}`;
+      const cached = getCached(key);
+      if (cached) return Promise.resolve(cached);
+      return request(key).then((data) => { setCache(key, data, 120_000); return data; });
     },
     getPopular(page = 1) {
-      return request(`/movies/popular?page=${page}`);
+      const key = `/movies/popular?page=${page}`;
+      const cached = getCached(key);
+      if (cached) return Promise.resolve(cached);
+      return request(key).then((data) => { setCache(key, data, 120_000); return data; });
     },
     search(query: string, page = 1) {
       return request(`/movies/search?query=${encodeURIComponent(query)}&page=${page}`);
     },
     getDetails(movieId: number) {
-      return request(`/movies/${movieId}`);
+      const key = `/movies/${movieId}`;
+      const cached = getCached(key);
+      if (cached) return Promise.resolve(cached);
+      return request(key).then((data) => { setCache(key, data, 300_000); return data; });
     },
   },
 
   venues: {
     create(data: any) {
+      invalidateCache('/venues/');
       return request('/venues', { method: 'POST', body: JSON.stringify(data) });
     },
     getMy() {
-      return request('/venues/my');
+      const key = '/venues/my';
+      const cached = getCached(key);
+      if (cached) return Promise.resolve(cached);
+      return request(key).then((data) => { setCache(key, data); return data; });
     },
     getOne(id: string) {
-      return request(`/venues/${id}`);
+      const key = `/venues/${id}`;
+      const cached = getCached(key);
+      if (cached) return Promise.resolve(cached);
+      return request(key).then((data) => { setCache(key, data, 60_000); return data; });
     },
     update(id: string, data: any) {
+      invalidateCache('/venues/');
       return request(`/venues/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
     },
     delete(id: string) {
+      invalidateCache('/venues/');
       return request(`/venues/${id}`, { method: 'DELETE' });
     },
     getNearby(lat: number, lng: number, radius?: number) {
       const params = `latitude=${lat}&longitude=${lng}${radius ? `&radius=${radius}` : ''}`;
-      return request(`/venues/nearby?${params}`);
+      const key = `/venues/nearby?${params}`;
+      const cached = getCached(key);
+      if (cached) return Promise.resolve(cached);
+      return request(key).then((data) => { setCache(key, data); return data; });
     },
   },
 
   seats: {
     create(data: any) {
+      invalidateCache('/seats/');
+      invalidateCache('/venues/');
       return request('/seats', { method: 'POST', body: JSON.stringify(data) });
     },
     batchCreate(data: any) {
+      invalidateCache('/seats/');
+      invalidateCache('/venues/');
       return request('/seats/batch', { method: 'POST', body: JSON.stringify(data) });
     },
     getByVenue(venueId: string) {
-      return request(`/seats/venue/${venueId}`);
+      const key = `/seats/venue/${venueId}`;
+      const cached = getCached(key);
+      if (cached) return Promise.resolve(cached);
+      return request(key).then((data) => { setCache(key, data, 60_000); return data; });
     },
     delete(id: string) {
+      invalidateCache('/seats/');
+      invalidateCache('/venues/');
       return request(`/seats/${id}`, { method: 'DELETE' });
     },
   },
 
   shows: {
     create(data: any) {
+      invalidateCache('/shows/');
       return request('/shows', { method: 'POST', body: JSON.stringify(data) });
     },
     getNowPlaying(lat?: number, lng?: number) {
       const params = lat && lng ? `?latitude=${lat}&longitude=${lng}` : '';
-      return request(`/shows/now-playing${params}`);
+      const key = `/shows/now-playing${params}`;
+      const cached = getCached(key);
+      if (cached) return Promise.resolve(cached);
+      return request(key).then((data) => { setCache(key, data); return data; });
     },
     getUpcoming(lat?: number, lng?: number) {
       const params = lat && lng ? `?latitude=${lat}&longitude=${lng}` : '';
-      return request(`/shows/upcoming${params}`);
+      const key = `/shows/upcoming${params}`;
+      const cached = getCached(key);
+      if (cached) return Promise.resolve(cached);
+      return request(key).then((data) => { setCache(key, data); return data; });
     },
     getMy() {
-      return request('/shows/my');
+      const key = '/shows/my';
+      const cached = getCached(key);
+      if (cached) return Promise.resolve(cached);
+      return request(key).then((data) => { setCache(key, data); return data; });
     },
     getOne(id: string) {
-      return request(`/shows/${id}`);
+      const key = `/shows/${id}`;
+      const cached = getCached(key);
+      if (cached) return Promise.resolve(cached);
+      return request(key).then((data) => { setCache(key, data, 60_000); return data; });
     },
     getMarkers() {
-      return request('/shows/markers');
+      const key = '/shows/markers';
+      const cached = getCached(key);
+      if (cached) return Promise.resolve(cached);
+      return request(key).then((data) => { setCache(key, data); return data; });
     },
     update(id: string, data: any) {
+      invalidateCache('/shows/');
       return request(`/shows/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
     },
     cancel(id: string) {
+      invalidateCache('/shows/');
       return request(`/shows/${id}/cancel`, { method: 'PATCH' });
     },
   },
@@ -230,72 +330,104 @@ export const api = {
     book(showId: string, seatId: string, password?: string) {
       const body: any = { showId, seatId };
       if (password) body.password = password;
+      invalidateCache('/tickets/');
+      invalidateCache('/shows/');
       return request('/tickets', {
         method: 'POST',
         body: JSON.stringify(body),
       });
     },
     getMy() {
-      return request('/tickets/my');
+      const key = '/tickets/my';
+      const cached = getCached(key);
+      if (cached) return Promise.resolve(cached);
+      return request(key).then((data) => { setCache(key, data); return data; });
     },
     getByShow(showId: string) {
       return request(`/tickets/show/${showId}`);
     },
     cancel(id: string) {
+      invalidateCache('/tickets/');
       return request(`/tickets/${id}/cancel`, { method: 'PATCH' });
     },
     checkIn(id: string) {
+      invalidateCache('/tickets/');
       return request(`/tickets/${id}/check-in`, { method: 'PATCH' });
     },
   },
 
   reviews: {
     create(data: any) {
+      invalidateCache('/reviews/');
       return request('/reviews', { method: 'POST', body: JSON.stringify(data) });
     },
     getByHost(hostId: string) {
-      return request(`/reviews/host/${hostId}`);
+      const key = `/reviews/host/${hostId}`;
+      const cached = getCached(key);
+      if (cached) return Promise.resolve(cached);
+      return request(key).then((data) => { setCache(key, data, 60_000); return data; });
     },
     getHostRating(hostId: string) {
-      return request(`/reviews/host/${hostId}/rating`);
+      const key = `/reviews/host/${hostId}/rating`;
+      const cached = getCached(key);
+      if (cached) return Promise.resolve(cached);
+      return request(key).then((data) => { setCache(key, data, 60_000); return data; });
     },
     getByShow(showId: string) {
-      return request(`/reviews/show/${showId}`);
+      const key = `/reviews/show/${showId}`;
+      const cached = getCached(key);
+      if (cached) return Promise.resolve(cached);
+      return request(key).then((data) => { setCache(key, data, 60_000); return data; });
     },
   },
 
   movieRequests: {
     create(data: any) {
+      invalidateCache('/movie-requests');
       return request('/movie-requests', {
         method: 'POST',
         body: JSON.stringify(data),
       });
     },
     getByHost() {
-      return request('/movie-requests/host');
+      const key = '/movie-requests/host';
+      const cached = getCached(key);
+      if (cached) return Promise.resolve(cached);
+      return request(key).then((data) => { setCache(key, data); return data; });
     },
     getMy() {
-      return request('/movie-requests/my');
+      const key = '/movie-requests/my';
+      const cached = getCached(key);
+      if (cached) return Promise.resolve(cached);
+      return request(key).then((data) => { setCache(key, data); return data; });
     },
     accept(id: string) {
+      invalidateCache('/movie-requests');
       return request(`/movie-requests/${id}/accept`, { method: 'PATCH' });
     },
     decline(id: string) {
+      invalidateCache('/movie-requests');
       return request(`/movie-requests/${id}/decline`, { method: 'PATCH' });
     },
   },
 
   snacks: {
     create(data: any) {
+      invalidateCache('/snacks/');
       return request('/snacks', { method: 'POST', body: JSON.stringify(data) });
     },
     getByVenue(venueId: string) {
-      return request(`/snacks/venue/${venueId}`);
+      const key = `/snacks/venue/${venueId}`;
+      const cached = getCached(key);
+      if (cached) return Promise.resolve(cached);
+      return request(key).then((data) => { setCache(key, data, 60_000); return data; });
     },
     update(id: string, data: any) {
+      invalidateCache('/snacks/');
       return request(`/snacks/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
     },
     delete(id: string) {
+      invalidateCache('/snacks/');
       return request(`/snacks/${id}`, { method: 'DELETE' });
     },
   },
@@ -303,7 +435,10 @@ export const api = {
   location: {
     getMap(lat: number, lng: number, radius?: number) {
       const params = `latitude=${lat}&longitude=${lng}${radius ? `&radius=${radius}` : ''}`;
-      return request(`/location/map?${params}`);
+      const key = `/location/map?${params}`;
+      const cached = getCached(key);
+      if (cached) return Promise.resolve(cached);
+      return request(key).then((data) => { setCache(key, data); return data; });
     },
   },
 };

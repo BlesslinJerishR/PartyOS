@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { BullModule } from '@nestjs/bullmq';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
@@ -19,15 +20,22 @@ import { LocationModule } from './location/location.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
-    ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
+    ConfigModule.forRoot({ isGlobal: true, cache: true }),
+    ThrottlerModule.forRoot([
+      { name: 'short', ttl: 1000, limit: 3 },    // 3 req/sec per IP
+      { name: 'medium', ttl: 10000, limit: 20 },  // 20 req/10sec
+      { name: 'long', ttl: 60000, limit: 100 },   // 100 req/min
+    ]),
     BullModule.forRootAsync({
-      useFactory: () => ({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
         connection: {
-          host: process.env.REDIS_HOST || 'localhost',
-          port: parseInt(process.env.REDIS_PORT || '6379', 10),
+          host: configService.get<string>('REDIS_HOST', 'localhost'),
+          port: configService.get<number>('REDIS_PORT', 6379),
+          maxRetriesPerRequest: 3,
         },
       }),
+      inject: [ConfigService],
     }),
     PrismaModule,
     RedisModule,
@@ -43,6 +51,12 @@ import { LocationModule } from './location/location.module';
     MovieRequestsModule,
     SnacksModule,
     LocationModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
   ],
 })
 export class AppModule {}

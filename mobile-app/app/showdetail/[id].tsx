@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -68,15 +68,16 @@ export default function ShowDetailScreen() {
   }
 
   const isBookable = show.status === 'SCHEDULED' || show.status === 'NOW_PLAYING';
-  const averageRating =
+  const averageRating = useMemo(() =>
     reviews.length > 0
       ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
-      : null;
+      : null,
+    [reviews]);
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.surface }]}>
       {show.moviePoster && (
-        <Image source={{ uri: show.moviePoster }} style={styles.heroPoster} />
+        <Image source={{ uri: show.moviePoster, cache: 'force-cache' }} style={styles.heroPoster} />
       )}
 
       <View style={styles.content}>

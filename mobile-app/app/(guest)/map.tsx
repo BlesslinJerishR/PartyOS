@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -63,15 +63,15 @@ export default function MapScreen() {
     );
   }
 
-  const nowPlayingJson = JSON.stringify(mapData?.nowPlaying || []);
-  const upcomingJson = JSON.stringify(mapData?.upcoming || []);
-  const venuesJson = JSON.stringify(venues);
+  const nowPlayingJson = useMemo(() => JSON.stringify(mapData?.nowPlaying || []), [mapData?.nowPlaying]);
+  const upcomingJson = useMemo(() => JSON.stringify(mapData?.upcoming || []), [mapData?.upcoming]);
+  const venuesJson = useMemo(() => JSON.stringify(venues), [venues]);
 
   const tileUrl = isDark
     ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png'
     : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png';
 
-  const mapHtml = `
+  const mapHtml = useMemo(() => `
 <!DOCTYPE html>
 <html>
 <head>
@@ -260,7 +260,7 @@ export default function MapScreen() {
     legend.addTo(map);
   </script>
 </body>
-</html>`;
+</html>`, [userLat, userLng, isDark, colors, tileUrl, nowPlayingJson, upcomingJson, venuesJson]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.surface }]}>

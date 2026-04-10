@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSeatDto } from './dto/create-seat.dto';
 import { BatchCreateSeatsDto } from './dto/batch-create-seats.dto';
@@ -24,6 +24,20 @@ export class SeatsService {
 
   async batchCreate(hostId: string, dto: BatchCreateSeatsDto) {
     await this.verifyVenueOwnership(dto.venueId, hostId);
+
+    // Prevent deleting seats that have active tickets
+    const activeTickets = await this.prisma.ticket.count({
+      where: {
+        seat: { venueId: dto.venueId },
+        status: { in: ['BOOKED', 'CHECKED_IN'] },
+      },
+    });
+
+    if (activeTickets > 0) {
+      throw new ConflictException(
+        'Cannot reset seats while there are active tickets. Cancel or complete all tickets first.',
+      );
+    }
 
     await this.prisma.seat.deleteMany({ where: { venueId: dto.venueId } });
 

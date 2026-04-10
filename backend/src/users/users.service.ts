@@ -1,29 +1,54 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redisService: RedisService,
+  ) {}
+
+  private safeParse<T>(json: string | null): T | null {
+    if (!json) return null;
+    try {
+      return JSON.parse(json) as T;
+    } catch {
+      return null;
+    }
+  }
 
   async setRole(userId: string, role: UserRole) {
-    return this.prisma.user.update({
+    const result = await this.prisma.user.update({
       where: { id: userId },
       data: { role },
       select: { id: true, username: true, role: true },
     });
+    await Promise.all([
+      this.redisService.del(`users:profile:${userId}`),
+      this.redisService.del(`jwt:user:${userId}`),
+    ]);
+    return result;
   }
 
   async updateLocation(userId: string, latitude: number, longitude: number) {
-    return this.prisma.user.update({
+    const result = await this.prisma.user.update({
       where: { id: userId },
       data: { latitude, longitude },
       select: { id: true, username: true, latitude: true, longitude: true },
     });
+    await this.redisService.del(`users:profile:${userId}`);
+    await this.redisService.delPattern('users:nearby:*');
+    return result;
   }
 
   async getProfile(userId: string) {
-    return this.prisma.user.findUnique({
+    const cacheKey = `users:profile:${userId}`;
+    const cached = this.safeParse(await this.redisService.get(cacheKey));
+    if (cached) return cached;
+
+    const profile = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
@@ -34,9 +59,19 @@ export class UsersService {
         createdAt: true,
       },
     });
+
+    if (!profile) throw new NotFoundException('User not found');
+
+    await this.redisService.set(cacheKey, JSON.stringify(profile), 600);
+    return profile;
   }
 
   async getNearbyHosts(latitude: number, longitude: number, radiusKm: number = 50) {
+    const clampedRadius = Math.min(Math.max(radiusKm, 1), 500);
+    const cacheKey = `users:nearby:${latitude.toFixed(2)}:${longitude.toFixed(2)}:${clampedRadius}`;
+    const cached = this.safeParse(await this.redisService.get(cacheKey));
+    if (cached) return cached;
+
     const hosts = await this.prisma.user.findMany({
       where: {
         role: 'HOST',
@@ -60,7 +95,7 @@ export class UsersService {
       },
     });
 
-    return hosts.filter((host) => {
+    const result = hosts.filter((host) => {
       if (!host.latitude || !host.longitude) return false;
       const distance = this.calculateDistance(
         latitude,
@@ -68,8 +103,11 @@ export class UsersService {
         host.latitude,
         host.longitude,
       );
-      return distance <= radiusKm;
+      return distance <= clampedRadius;
     });
+
+    await this.redisService.set(cacheKey, JSON.stringify(result), 300);
+    return result;
   }
 
   private calculateDistance(

@@ -1,13 +1,14 @@
-import { IsString, IsOptional } from 'class-validator';
+import { IsString, IsOptional, IsUUID, MaxLength } from 'class-validator';
 
 export class BookTicketDto {
-  @IsString()
+  @IsUUID()
   showId: string;
 
-  @IsString()
+  @IsUUID()
   seatId: string;
 
   @IsString()
+  @MaxLength(128)
   @IsOptional()
   password?: string;
 }

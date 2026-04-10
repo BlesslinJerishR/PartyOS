@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -35,13 +35,13 @@ export default function TicketsScreen() {
     loadTickets();
   }, [loadTickets]);
 
-  const onRefresh = async () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadTickets();
     setRefreshing(false);
-  };
+  }, [loadTickets]);
 
-  const handleCancel = async (ticketId: string) => {
+  const handleCancel = useCallback(async (ticketId: string) => {
     Alert.alert('Cancel Ticket', 'Are you sure you want to cancel this ticket?', [
       { text: 'No', style: 'cancel' },
       {
@@ -57,9 +57,9 @@ export default function TicketsScreen() {
         },
       },
     ]);
-  };
+  }, [loadTickets]);
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = useCallback((status: string) => {
     switch (status) {
       case 'BOOKED':
         return colors.upcoming;
@@ -74,12 +74,12 @@ export default function TicketsScreen() {
     }
   };
 
-  const active = tickets.filter(
+  const active = useMemo(() => tickets.filter(
     (t) => t.status === 'BOOKED' || t.status === 'CHECKED_IN',
-  );
-  const past = tickets.filter(
+  ), [tickets]);
+  const past = useMemo(() => tickets.filter(
     (t) => t.status === 'COMPLETED' || t.status === 'CANCELLED',
-  );
+  ), [tickets]);
 
   return (
     <ScrollView
