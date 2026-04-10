@@ -180,3 +180,23 @@ export const SEAT_CAPACITIES: Record<SeatType, number> = {
   BED_DOUBLE: 2,
   BED_TRIPLE: 3,
 };
+
+export const SEAT_COLORS: Record<SeatType, string> = {
+  CHAIR: '#FF004F',
+  SINGLE_SOFA: '#8B5CF6',
+  RECLINER: '#F59E0B',
+  THREE_SEATER_SOFA: '#3B82F6',
+  BED_SINGLE: '#10B981',
+  BED_DOUBLE: '#EC4899',
+  BED_TRIPLE: '#06B6D4',
+};
+
+export const SEAT_DIMENSIONS: Record<SeatType, { cols: number; rows: number }> = {
+  CHAIR: { cols: 1, rows: 1 },
+  SINGLE_SOFA: { cols: 1, rows: 1 },
+  RECLINER: { cols: 1, rows: 1 },
+  THREE_SEATER_SOFA: { cols: 3, rows: 1 },
+  BED_SINGLE: { cols: 1, rows: 3 },
+  BED_DOUBLE: { cols: 2, rows: 3 },
+  BED_TRIPLE: { cols: 3, rows: 3 },
+};

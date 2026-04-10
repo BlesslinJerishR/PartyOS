@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
   Inconsolata_400Regular,
   Inconsolata_500Medium,
@@ -74,8 +75,10 @@ export default function RootLayout() {
   if (!fontsLoaded) return null;
 
   return (
-    <AuthProvider>
-      <InnerLayout />
-    </AuthProvider>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <InnerLayout />
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }

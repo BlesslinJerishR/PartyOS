@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,19 +12,11 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { api } from '../../services/api';
 import { useTheme } from '../../context/AuthContext';
 import { Fonts } from '../../constants/Fonts';
-import { Show, Seat, Ticket } from '../../types';
-import { SEAT_TYPE_LABELS, SEAT_CAPACITIES } from '../../types';
+import { Show, Seat, Ticket, SeatType } from '../../types';
+import { SEAT_TYPE_LABELS, SEAT_CAPACITIES, SEAT_COLORS, SEAT_DIMENSIONS } from '../../types';
 import { Check, X } from 'lucide-react-native';
 
-const SEAT_COLORS: Record<string, string> = {
-  CHAIR: '#FF004F',
-  SINGLE_SOFA: '#FF004F',
-  RECLINER: '#FF004F',
-  THREE_SEATER_SOFA: '#FF004F',
-  BED_SINGLE: '#FF004F',
-  BED_DOUBLE: '#FF004F',
-  BED_TRIPLE: '#FF004F',
-};
+const GRID_CELL_SIZE = 42;
 
 export default function BookingScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -91,12 +83,122 @@ export default function BookingScreen() {
     );
   }
 
-  const maxRow = Math.max(...seats.map((s) => s.row), 0);
-  const maxCol = Math.max(...seats.map((s) => s.col), 0);
-  const seatMap = new Map<string, Seat>();
-  seats.forEach((s) => seatMap.set(`${s.row},${s.col}`, s));
+  const maxRow = seats.length > 0
+    ? Math.max(...seats.map((s) => s.row + SEAT_DIMENSIONS[s.type].rows - 1), 0)
+    : 0;
+  const maxCol = seats.length > 0
+    ? Math.max(...seats.map((s) => s.col + SEAT_DIMENSIONS[s.type].cols - 1), 0)
+    : 0;
 
   const selectedSeat = seats.find((s) => s.id === selectedSeatId);
+
+  const getOccupiedCells = (): Set<string> => {
+    const occupied = new Set<string>();
+    seats.forEach((seat) => {
+      const dims = SEAT_DIMENSIONS[seat.type];
+      for (let r = seat.row; r < seat.row + dims.rows; r++) {
+        for (let c = seat.col; c < seat.col + dims.cols; c++) {
+          occupied.add(`${r}-${c}`);
+        }
+      }
+    });
+    return occupied;
+  };
+
+  const renderGrid = () => {
+    const occupiedCells = getOccupiedCells();
+    const elements: React.ReactElement[] = [];
+
+    for (let r = 0; r <= maxRow; r++) {
+      for (let c = 0; c <= maxCol; c++) {
+        if (!occupiedCells.has(`${r}-${c}`)) {
+          elements.push(
+            <View
+              key={`empty-${r}-${c}`}
+              style={{
+                position: 'absolute',
+                left: c * GRID_CELL_SIZE,
+                top: r * GRID_CELL_SIZE,
+                width: GRID_CELL_SIZE,
+                height: GRID_CELL_SIZE,
+              }}
+            />,
+          );
+        }
+      }
+    }
+
+    seats.forEach((seat) => {
+      const dims = SEAT_DIMENSIONS[seat.type];
+      const seatWidth = dims.cols * GRID_CELL_SIZE - 6;
+      const seatHeight = dims.rows * GRID_CELL_SIZE - 6;
+      const isBooked = bookedSeatIds.has(seat.id);
+      const isSelected = selectedSeatId === seat.id;
+      const color = SEAT_COLORS[seat.type] || colors.textLight;
+
+      elements.push(
+        <TouchableOpacity
+          key={`seat-${seat.id}`}
+          style={{
+            position: 'absolute',
+            left: seat.col * GRID_CELL_SIZE + 3,
+            top: seat.row * GRID_CELL_SIZE + 3,
+            width: seatWidth,
+            height: seatHeight,
+            borderRadius: 6,
+            borderWidth: 1.5,
+            backgroundColor: isBooked
+              ? colors.surfaceAlt
+              : isSelected
+              ? color
+              : color + '30',
+            borderColor: isBooked ? colors.border : color,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+          disabled={isBooked}
+          onPress={() => setSelectedSeatId(seat.id)}
+          activeOpacity={0.7}
+        >
+          {isBooked ? (
+            <X size={12} color={colors.textLight} strokeWidth={2} />
+          ) : isSelected ? (
+            <>
+              <Check size={12} color={colors.white} strokeWidth={2} />
+              {(dims.cols > 1 || dims.rows > 1) && (
+                <Text style={{ color: colors.white, fontSize: 8, fontFamily: Fonts.regular, marginTop: 1 }}>
+                  {seat.label}
+                </Text>
+              )}
+            </>
+          ) : (
+            <>
+              <Text style={{ color, fontSize: dims.cols > 1 || dims.rows > 1 ? 10 : 8, fontFamily: Fonts.medium }}>
+                {seat.label}
+              </Text>
+              {(dims.cols > 1 || dims.rows > 1) && (
+                <Text style={{ color: color + '99', fontSize: 7, fontFamily: Fonts.regular, marginTop: 1 }}>
+                  {SEAT_TYPE_LABELS[seat.type]}
+                </Text>
+              )}
+            </>
+          )}
+        </TouchableOpacity>,
+      );
+    });
+
+    return (
+      <View
+        style={{
+          width: (maxCol + 1) * GRID_CELL_SIZE,
+          height: (maxRow + 1) * GRID_CELL_SIZE,
+          position: 'relative',
+        }}
+      >
+        {elements}
+      </View>
+    );
+  };
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.surface }]}>
@@ -109,53 +211,8 @@ export default function BookingScreen() {
         <Text style={[styles.screenText, { color: colors.white, fontFamily: Fonts.semiBold }]}>SCREEN</Text>
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <View style={styles.grid}>
-          {Array.from({ length: maxRow + 1 }).map((_, row) => (
-            <View key={row} style={styles.gridRow}>
-              {Array.from({ length: maxCol + 1 }).map((_, col) => {
-                const seat = seatMap.get(`${row},${col}`);
-                if (!seat) {
-                  return <View key={col} style={styles.emptyCell} />;
-                }
-                const isBooked = bookedSeatIds.has(seat.id);
-                const isSelected = selectedSeatId === seat.id;
-                const color = SEAT_COLORS[seat.type] || colors.textLight;
-
-                return (
-                  <TouchableOpacity
-                    key={col}
-                    style={[
-                      styles.seatCell,
-                      {
-                        backgroundColor: isBooked
-                          ? colors.surfaceAlt
-                          : isSelected
-                          ? color
-                          : color + '30',
-                        borderColor: isBooked
-                          ? colors.border
-                          : color,
-                      },
-                    ]}
-                    disabled={isBooked}
-                    onPress={() => setSelectedSeatId(seat.id)}
-                  >
-                    {isBooked ? (
-                      <X size={12} color={colors.textLight} strokeWidth={2} />
-                    ) : isSelected ? (
-                      <Check size={12} color={colors.white} strokeWidth={2} />
-                    ) : (
-                      <Text style={[styles.seatLabel, { color }]}>
-                        {seat.label}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          ))}
-        </View>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.gridContainer}>
+        {renderGrid()}
       </ScrollView>
 
       <View style={styles.legend}>
@@ -242,30 +299,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     letterSpacing: 2,
   },
-  grid: {
+  gridContainer: {
     paddingHorizontal: 16,
     alignItems: 'center',
-  },
-  gridRow: {
-    flexDirection: 'row',
-    marginBottom: 6,
-  },
-  emptyCell: {
-    width: 36,
-    height: 36,
-    margin: 3,
-  },
-  seatCell: {
-    width: 36,
-    height: 36,
-    margin: 3,
-    borderRadius: 6,
-    borderWidth: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  seatLabel: {
-    fontSize: 8,
   },
   legend: {
     flexDirection: 'row',

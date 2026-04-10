@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,11 +9,13 @@ import {
   Alert,
   Modal,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
+import * as Location from 'expo-location';
 import { api } from '../../services/api';
 import { useTheme } from '../../context/AuthContext';
 import { Fonts } from '../../constants/Fonts';
-import { Venue, Seat, SeatType, ScreenType, SEAT_TYPE_LABELS } from '../../types';
+import { Venue, Seat, SeatType, ScreenType, SEAT_TYPE_LABELS, SEAT_COLORS, SEAT_DIMENSIONS } from '../../types';
 import {
   Plus,
   Trash2,
@@ -21,17 +23,8 @@ import {
   Projector,
   Save,
   X,
+  MapPin,
 } from 'lucide-react-native';
-
-const SEAT_COLORS: Record<SeatType, string> = {
-  CHAIR: '#FF004F',
-  SINGLE_SOFA: '#FF004F',
-  RECLINER: '#FF004F',
-  THREE_SEATER_SOFA: '#FF004F',
-  BED_SINGLE: '#FF004F',
-  BED_DOUBLE: '#FF004F',
-  BED_TRIPLE: '#FF004F',
-};
 
 const GRID_CELL_SIZE = 52;
 
@@ -42,6 +35,7 @@ export default function CanvasScreen() {
   const [showCreateVenue, setShowCreateVenue] = useState(false);
   const [showAddSeat, setShowAddSeat] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [fetchingLocation, setFetchingLocation] = useState(false);
 
   const [venueName, setVenueName] = useState('');
   const [venueAddress, setVenueAddress] = useState('');
@@ -79,6 +73,49 @@ export default function CanvasScreen() {
     setRefreshing(false);
   };
 
+  const fetchCurrentLocation = async () => {
+    setFetchingLocation(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Location permission is required to auto-fill venue address');
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+
+      const lat = location.coords.latitude;
+      const lng = location.coords.longitude;
+      setVenueLat(lat.toString());
+      setVenueLng(lng.toString());
+
+      const [reverseGeocode] = await Location.reverseGeocodeAsync({
+        latitude: lat,
+        longitude: lng,
+      });
+
+      if (reverseGeocode) {
+        const parts = [
+          reverseGeocode.name,
+          reverseGeocode.street,
+          reverseGeocode.district,
+          reverseGeocode.city,
+          reverseGeocode.region,
+          reverseGeocode.postalCode,
+          reverseGeocode.country,
+        ].filter(Boolean);
+        const address = [...new Set(parts)].join(', ');
+        setVenueAddress(address);
+      }
+    } catch (error: any) {
+      Alert.alert('Location Error', error.message || 'Could not fetch location');
+    } finally {
+      setFetchingLocation(false);
+    }
+  };
+
   const handleCreateVenue = async () => {
     if (!venueName.trim() || !venueAddress.trim() || !venueLat || !venueLng) {
       Alert.alert('Error', 'Please fill in all fields');
@@ -110,18 +147,56 @@ export default function CanvasScreen() {
     setScreenType('TV_4K');
   };
 
+  const getOccupiedCells = (currentSeats: Seat[], excludeSeatId?: string): Set<string> => {
+    const occupied = new Set<string>();
+    currentSeats.forEach((seat) => {
+      if (excludeSeatId && seat.id === excludeSeatId) return;
+      const dims = SEAT_DIMENSIONS[seat.type];
+      for (let r = seat.row; r < seat.row + dims.rows; r++) {
+        for (let c = seat.col; c < seat.col + dims.cols; c++) {
+          occupied.add(`${r}-${c}`);
+        }
+      }
+    });
+    return occupied;
+  };
+
+  const canPlaceSeat = (type: SeatType, row: number, col: number): boolean => {
+    const dims = SEAT_DIMENSIONS[type];
+    const occupied = getOccupiedCells(seats);
+    for (let r = row; r < row + dims.rows; r++) {
+      for (let c = col; c < col + dims.cols; c++) {
+        if (occupied.has(`${r}-${c}`)) return false;
+      }
+    }
+    return true;
+  };
+
   const handleAddSeat = async () => {
     if (!selectedVenue || !seatLabel.trim() || !seatRow || !seatCol) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
+
+    const row = parseInt(seatRow, 10);
+    const col = parseInt(seatCol, 10);
+    const dims = SEAT_DIMENSIONS[seatType];
+
+    if (!canPlaceSeat(seatType, row, col)) {
+      Alert.alert(
+        'Overlap',
+        `Cannot place ${SEAT_TYPE_LABELS[seatType]} (${dims.cols}x${dims.rows}) at row ${row}, col ${col}. It overlaps with an existing seat.`,
+      );
+      return;
+    }
+
     try {
       const seat = (await api.seats.create({
         venueId: selectedVenue.id,
         type: seatType,
         label: seatLabel,
-        row: parseInt(seatRow, 10),
-        col: parseInt(seatCol, 10),
+        row,
+        col,
       })) as Seat;
       setSeats((prev) => [...prev, seat]);
       setShowAddSeat(false);
@@ -132,12 +207,21 @@ export default function CanvasScreen() {
   };
 
   const handleRemoveSeat = async (seatId: string) => {
-    try {
-      await api.seats.delete(seatId);
-      setSeats((prev) => prev.filter((s) => s.id !== seatId));
-    } catch (error: any) {
-      Alert.alert('Error', error.message);
-    }
+    Alert.alert('Remove Seat', 'Are you sure you want to remove this seat?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await api.seats.delete(seatId);
+            setSeats((prev) => prev.filter((s) => s.id !== seatId));
+          } catch (error: any) {
+            Alert.alert('Error', error.message);
+          }
+        },
+      },
+    ]);
   };
 
   const resetSeatForm = () => {
@@ -147,40 +231,99 @@ export default function CanvasScreen() {
     setSeatCol('');
   };
 
-  const maxRow = Math.max(...seats.map((s) => s.row), 3);
-  const maxCol = Math.max(...seats.map((s) => s.col), 5);
+  const maxRow = seats.length > 0
+    ? Math.max(...seats.map((s) => s.row + SEAT_DIMENSIONS[s.type].rows - 1), 3)
+    : 3;
+  const maxCol = seats.length > 0
+    ? Math.max(...seats.map((s) => s.col + SEAT_DIMENSIONS[s.type].cols - 1), 5)
+    : 5;
 
   const renderGrid = () => {
-    const rows = [];
+    const occupiedCells = getOccupiedCells(seats);
+    const elements: React.ReactElement[] = [];
+
     for (let r = 0; r <= maxRow; r++) {
-      const cols = [];
       for (let c = 0; c <= maxCol; c++) {
-        const seat = seats.find((s) => s.row === r && s.col === c);
-        cols.push(
-          <View key={`${r}-${c}`} style={styles.gridCell}>
-            {seat ? (
-              <TouchableOpacity
-                style={[
-                  styles.seatCell,
-                  { backgroundColor: SEAT_COLORS[seat.type] },
-                ]}
-                onLongPress={() => handleRemoveSeat(seat.id)}
-              >
-                <Text style={[styles.seatCellLabel, { color: colors.white, fontFamily: Fonts.bold }]}>{seat.label}</Text>
-              </TouchableOpacity>
-            ) : (
-              <View style={[styles.emptyCell, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]} />
-            )}
-          </View>,
-        );
+        if (!occupiedCells.has(`${r}-${c}`)) {
+          elements.push(
+            <View
+              key={`empty-${r}-${c}`}
+              style={{
+                position: 'absolute',
+                left: c * GRID_CELL_SIZE + 2,
+                top: r * GRID_CELL_SIZE + 2,
+                width: GRID_CELL_SIZE - 4,
+                height: GRID_CELL_SIZE - 4,
+                borderRadius: 8,
+                borderWidth: 1,
+                borderStyle: 'dashed',
+                backgroundColor: colors.surfaceAlt,
+                borderColor: colors.border,
+              }}
+            />,
+          );
+        }
       }
-      rows.push(
-        <View key={r} style={styles.gridRow}>
-          {cols}
-        </View>,
-      );
     }
-    return rows;
+
+    seats.forEach((seat) => {
+      const dims = SEAT_DIMENSIONS[seat.type];
+      const seatWidth = dims.cols * GRID_CELL_SIZE - 4;
+      const seatHeight = dims.rows * GRID_CELL_SIZE - 4;
+
+      elements.push(
+        <TouchableOpacity
+          key={`seat-${seat.id}`}
+          style={{
+            position: 'absolute',
+            left: seat.col * GRID_CELL_SIZE + 2,
+            top: seat.row * GRID_CELL_SIZE + 2,
+            width: seatWidth,
+            height: seatHeight,
+            borderRadius: 8,
+            backgroundColor: SEAT_COLORS[seat.type],
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+          onLongPress={() => handleRemoveSeat(seat.id)}
+          activeOpacity={0.8}
+        >
+          <Text
+            style={{
+              color: '#FFFFFF',
+              fontFamily: Fonts.bold,
+              fontSize: dims.cols > 1 || dims.rows > 1 ? 13 : 10,
+            }}
+          >
+            {seat.label}
+          </Text>
+          {(dims.cols > 1 || dims.rows > 1) && (
+            <Text
+              style={{
+                color: 'rgba(255,255,255,0.8)',
+                fontFamily: Fonts.regular,
+                fontSize: 9,
+                marginTop: 2,
+              }}
+            >
+              {SEAT_TYPE_LABELS[seat.type]}
+            </Text>
+          )}
+        </TouchableOpacity>,
+      );
+    });
+
+    return (
+      <View
+        style={{
+          width: (maxCol + 1) * GRID_CELL_SIZE,
+          height: (maxRow + 1) * GRID_CELL_SIZE,
+          position: 'relative',
+        }}
+      >
+        {elements}
+      </View>
+    );
   };
 
   return (
@@ -241,24 +384,29 @@ export default function CanvasScreen() {
 
           <View style={styles.canvasContainer}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View>{renderGrid()}</View>
+              {renderGrid()}
             </ScrollView>
           </View>
 
           <View style={styles.legend}>
             <Text style={[styles.legendTitle, { color: colors.text, fontFamily: Fonts.semiBold }]}>Legend</Text>
             <View style={styles.legendGrid}>
-              {(Object.keys(SEAT_COLORS) as SeatType[]).map((type) => (
-                <View key={type} style={styles.legendItem}>
-                  <View
-                    style={[
-                      styles.legendDot,
-                      { backgroundColor: SEAT_COLORS[type] },
-                    ]}
-                  />
-                  <Text style={[styles.legendLabel, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>{SEAT_TYPE_LABELS[type]}</Text>
-                </View>
-              ))}
+              {(Object.keys(SEAT_COLORS) as SeatType[]).map((type) => {
+                const dims = SEAT_DIMENSIONS[type];
+                return (
+                  <View key={type} style={styles.legendItem}>
+                    <View
+                      style={[
+                        styles.legendDot,
+                        { backgroundColor: SEAT_COLORS[type] },
+                      ]}
+                    />
+                    <Text style={[styles.legendLabel, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>
+                      {SEAT_TYPE_LABELS[type]} ({dims.cols}x{dims.rows})
+                    </Text>
+                  </View>
+                );
+              })}
             </View>
             <Text style={[styles.legendHint, { color: colors.textLight, fontFamily: Fonts.regular }]}>Long press a seat to remove it</Text>
           </View>
@@ -304,13 +452,26 @@ export default function CanvasScreen() {
               value={venueName}
               onChangeText={setVenueName}
             />
-            <TextInput
-              style={[styles.modalInput, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border, fontFamily: Fonts.regular }]}
-              placeholder="Address"
-              placeholderTextColor={colors.textLight}
-              value={venueAddress}
-              onChangeText={setVenueAddress}
-            />
+            <View style={styles.addressRow}>
+              <TextInput
+                style={[styles.modalInput, styles.addressInput, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border, fontFamily: Fonts.regular }]}
+                placeholder="Address"
+                placeholderTextColor={colors.textLight}
+                value={venueAddress}
+                onChangeText={setVenueAddress}
+              />
+              <TouchableOpacity
+                style={[styles.gpsButton, { backgroundColor: colors.primary }]}
+                onPress={fetchCurrentLocation}
+                disabled={fetchingLocation}
+              >
+                {fetchingLocation ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <MapPin size={20} color="#FFFFFF" strokeWidth={2} />
+                )}
+              </TouchableOpacity>
+            </View>
             <View style={styles.rowInputs}>
               <TextInput
                 style={[styles.modalInput, styles.halfInput, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border, fontFamily: Fonts.regular }]}
@@ -376,27 +537,39 @@ export default function CanvasScreen() {
             </View>
             <Text style={[styles.fieldLabel, { color: colors.text, fontFamily: Fonts.semiBold }]}>Seat Type</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.seatTypeScroll}>
-              {(Object.keys(SEAT_TYPE_LABELS) as SeatType[]).map((type) => (
-                <TouchableOpacity
-                  key={type}
-                  style={[
-                    styles.seatTypeChip,
-                    { backgroundColor: colors.surfaceAlt },
-                    seatType === type && { backgroundColor: SEAT_COLORS[type] },
-                  ]}
-                  onPress={() => setSeatType(type)}
-                >
-                  <Text
+              {(Object.keys(SEAT_TYPE_LABELS) as SeatType[]).map((type) => {
+                const dims = SEAT_DIMENSIONS[type];
+                return (
+                  <TouchableOpacity
+                    key={type}
                     style={[
-                      styles.seatTypeChipText,
-                      { color: colors.text, fontFamily: Fonts.medium },
-                      seatType === type && [styles.seatTypeChipTextActive, { color: colors.white }],
+                      styles.seatTypeChip,
+                      { backgroundColor: colors.surfaceAlt },
+                      seatType === type && { backgroundColor: SEAT_COLORS[type] },
                     ]}
+                    onPress={() => setSeatType(type)}
                   >
-                    {SEAT_TYPE_LABELS[type]}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    <Text
+                      style={[
+                        styles.seatTypeChipText,
+                        { color: colors.text, fontFamily: Fonts.medium },
+                        seatType === type && [styles.seatTypeChipTextActive, { color: colors.white }],
+                      ]}
+                    >
+                      {SEAT_TYPE_LABELS[type]}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.seatTypeDims,
+                        { color: colors.textLight },
+                        seatType === type && { color: 'rgba(255,255,255,0.8)' },
+                      ]}
+                    >
+                      {dims.cols}x{dims.rows}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
             <TextInput
               style={[styles.modalInput, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border, fontFamily: Fonts.regular }]}
@@ -422,6 +595,26 @@ export default function CanvasScreen() {
                 onChangeText={setSeatCol}
                 keyboardType="numeric"
               />
+            </View>
+            <View style={[styles.seatPreview, { borderColor: colors.border }]}>
+              <Text style={[styles.seatPreviewTitle, { color: colors.textSecondary, fontFamily: Fonts.medium }]}>
+                Preview: {SEAT_TYPE_LABELS[seatType]} — occupies {SEAT_DIMENSIONS[seatType].cols}x{SEAT_DIMENSIONS[seatType].rows} cells
+              </Text>
+              <View style={styles.seatPreviewGrid}>
+                {Array.from({ length: SEAT_DIMENSIONS[seatType].rows }).map((_, r) => (
+                  <View key={r} style={styles.seatPreviewRow}>
+                    {Array.from({ length: SEAT_DIMENSIONS[seatType].cols }).map((_, c) => (
+                      <View
+                        key={c}
+                        style={[
+                          styles.seatPreviewCell,
+                          { backgroundColor: SEAT_COLORS[seatType] },
+                        ]}
+                      />
+                    ))}
+                  </View>
+                ))}
+              </View>
             </View>
             <TouchableOpacity style={[styles.modalButton, { backgroundColor: colors.primary }]} onPress={handleAddSeat}>
               <Text style={[styles.modalButtonText, { color: colors.white, fontFamily: Fonts.semiBold }]}>Add Seat</Text>
@@ -486,29 +679,6 @@ const styles = StyleSheet.create({
   canvasContainer: {
     paddingHorizontal: 20,
     marginBottom: 20,
-  },
-  gridRow: {
-    flexDirection: 'row',
-  },
-  gridCell: {
-    width: GRID_CELL_SIZE,
-    height: GRID_CELL_SIZE,
-    padding: 2,
-  },
-  seatCell: {
-    flex: 1,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  seatCellLabel: {
-    fontSize: 10,
-  },
-  emptyCell: {
-    flex: 1,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderStyle: 'dashed',
   },
   legend: {
     paddingHorizontal: 20,
@@ -584,7 +754,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 24,
-    maxHeight: '80%',
+    maxHeight: '85%',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -602,6 +772,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     borderWidth: 1,
     marginBottom: 12,
+  },
+  addressRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  addressInput: {
+    flex: 1,
+  },
+  gpsButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   rowInputs: {
     flexDirection: 'row',
@@ -642,11 +827,39 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 16,
     marginRight: 8,
+    alignItems: 'center',
   },
   seatTypeChipText: {
     fontSize: 13,
   },
   seatTypeChipTextActive: {},
+  seatTypeDims: {
+    fontSize: 10,
+    marginTop: 2,
+  },
+  seatPreview: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    alignItems: 'center',
+  },
+  seatPreviewTitle: {
+    fontSize: 12,
+    marginBottom: 8,
+  },
+  seatPreviewGrid: {
+    gap: 3,
+  },
+  seatPreviewRow: {
+    flexDirection: 'row',
+    gap: 3,
+  },
+  seatPreviewCell: {
+    width: 28,
+    height: 28,
+    borderRadius: 4,
+  },
   modalButton: {
     paddingVertical: 14,
     borderRadius: 12,

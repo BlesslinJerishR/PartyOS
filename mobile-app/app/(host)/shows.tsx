@@ -469,6 +469,7 @@ const styles = StyleSheet.create({
   emptyState: {
     alignItems: 'center',
     paddingVertical: 60,
+    paddingHorizontal: 32,
   },
   emptyTitle: {
     fontSize: 18,
@@ -476,6 +477,7 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 14,
     marginTop: 8,
+    textAlign: 'center',
   },
   modalOverlay: {
     flex: 1,

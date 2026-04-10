@@ -1,10 +1,12 @@
 import { Tabs } from 'expo-router';
 import { useTheme } from '../../context/AuthContext';
 import { Fonts } from '../../constants/Fonts';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Play, Clock, Map, Ticket, User } from 'lucide-react-native';
 
 export default function GuestLayout() {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
 
   return (
     <Tabs
@@ -14,9 +16,9 @@ export default function GuestLayout() {
         tabBarStyle: {
           backgroundColor: colors.background,
           borderTopColor: colors.border,
-          paddingBottom: 8,
+          paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
           paddingTop: 8,
-          height: 64,
+          height: 64 + (insets.bottom > 0 ? insets.bottom : 0),
         },
         tabBarLabelStyle: {
           fontSize: 11,

@@ -165,3 +165,36 @@ Improvise as much as needed and improvise accordingly
 in the shows tab the default message it is not mobile responsive as other screen. its width is too much end to end. fix it, normalize it
 
 make it robust and seamless. Implement end to end. make no mistakes. Do both the frontend and backend end to end. Improvise as much as needed and possible. Improvise accordingly. It should be an actual production ready enterprise grade level application. make no mistakes.
+
+X
+
+In party host screen
+
+1. make the screen not as a pure rectangle but a little curved screen like an little angle arc and in the the middle write as "Screen this way"
+2. Add one more mode with Free show, Paid Show and Add Private Show . For private show it requires password for booking and Party Host can set the password for private shows. Implement. 
+make it robust and seamless. Implement end to end. make no mistakes. Do both the frontend and backend end to end. Improvise as much as needed and possible. Improvise accordingly. It should be an actual production ready enterprise grade level application. make no mistakes.
+in Schedule show screen
+3. unable to change the movie after selecting another movie first. check and fix. I should be able to change movie after selecting a movie
+4. Now it shows selected : Inception
+Rewrite it as Show the poster and title of the movie under the poster
+5. Implement a date picker for Date field
+6. Implement a time picker start time and end time 
+7. Both Date and Time picker cannot be in the past, should not be able to select past dates or times
+
+X 
+
+2. Still unable to access TMDB
+
+It says 
+
+Search failed
+
+Unable to reach TMDB. The service may be temporarily unavailable in your region
+
+I have attached my API Key in the .env
+
+Please fix
+
+X
+
+

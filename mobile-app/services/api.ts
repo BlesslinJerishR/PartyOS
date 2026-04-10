@@ -23,11 +23,12 @@ function getApiUrl(): string {
 
 const API_URL = getApiUrl();
 
-async function getHeaders(): Promise<Record<string, string>> {
+async function getHeaders(hasBody: boolean = true): Promise<Record<string, string>> {
   const token = await storage.getToken();
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
+  const headers: Record<string, string> = {};
+  if (hasBody) {
+    headers['Content-Type'] = 'application/json';
+  }
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
@@ -45,7 +46,8 @@ async function request<T>(
   endpoint: string,
   options: RequestInit = {},
 ): Promise<T> {
-  const headers = await getHeaders();
+  const hasBody = !!options.body;
+  const headers = await getHeaders(hasBody);
   let lastError: Error = new Error('Request failed');
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {

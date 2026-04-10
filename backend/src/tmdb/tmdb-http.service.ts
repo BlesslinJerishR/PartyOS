@@ -2,20 +2,40 @@ import {
   Injectable,
   Logger,
   OnModuleInit,
-  OnModuleDestroy,
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Agent, fetch as undiciFetch } from 'undici';
-import { Resolver } from 'node:dns/promises';
-import * as dns from 'node:dns';
+import * as https from 'node:https';
+
+/**
+ * DNS-over-HTTPS record from Cloudflare/Google JSON API.
+ */
+interface DoHAnswer {
+  name: string;
+  type: number;
+  TTL: number;
+  data: string;
+}
+
+interface DoHResponse {
+  Status: number;
+  Answer?: DoHAnswer[];
+}
 
 @Injectable()
-export class TmdbHttpService implements OnModuleInit, OnModuleDestroy {
+export class TmdbHttpService implements OnModuleInit {
   private readonly logger = new Logger(TmdbHttpService.name);
-  private readonly agent: Agent;
-  private readonly dnsResolver: Resolver;
+
+  // DNS-over-HTTPS endpoints (IP-based so they don't need DNS resolution themselves)
+  // These are the exact mechanism Chrome "Secure DNS" uses — queries go over
+  // HTTPS (port 443), completely bypassing ISP DNS interception/blocking.
+  private readonly dohEndpoints = [
+    { url: 'https://1.1.1.1/dns-query', name: 'Cloudflare-1' },
+    { url: 'https://1.0.0.1/dns-query', name: 'Cloudflare-2' },
+    { url: 'https://8.8.8.8/resolve', name: 'Google-1' },
+    { url: 'https://8.8.4.4/resolve', name: 'Google-2' },
+  ];
 
   // DNS resolution cache: hostname → { addresses, expiry }
   private readonly dnsCache = new Map<
@@ -35,132 +55,167 @@ export class TmdbHttpService implements OnModuleInit, OnModuleDestroy {
   private static readonly CIRCUIT_RESET_MS = 60_000;
 
   constructor(private readonly configService: ConfigService) {
-    const dnsServers = this.configService
-      .get<string>('TMDB_DNS_SERVERS', '1.1.1.1,1.0.0.1,8.8.8.8,8.8.4.4')
-      .split(',')
-      .map((s) => s.trim());
-
-    this.maxRetries = this.configService.get<number>('TMDB_MAX_RETRIES', 3);
-    this.timeoutMs = this.configService.get<number>('TMDB_TIMEOUT_MS', 15000);
+    this.maxRetries = parseInt(
+      this.configService.get<string>('TMDB_MAX_RETRIES', '3'),
+      10,
+    );
+    this.timeoutMs = parseInt(
+      this.configService.get<string>('TMDB_TIMEOUT_MS', '15000'),
+      10,
+    );
     this.dnsCacheTtlMs =
-      this.configService.get<number>('TMDB_DNS_CACHE_TTL_SECONDS', 300) * 1000;
-
-    // Custom DNS resolver using Cloudflare & Google public DNS
-    // This bypasses ISP DNS blocking of TMDB in regions like India
-    this.dnsResolver = new Resolver();
-    this.dnsResolver.setServers(dnsServers);
-
-    // Create undici Agent with custom DNS lookup
-    this.agent = new Agent({
-      connect: {
-        lookup: this.customLookup.bind(this) as any,
-      },
-      connectTimeout: this.timeoutMs,
-      bodyTimeout: 30_000,
-      headersTimeout: this.timeoutMs,
-    });
+      parseInt(
+        this.configService.get<string>('TMDB_DNS_CACHE_TTL_SECONDS', '300'),
+        10,
+      ) * 1000;
 
     this.logger.log(
-      `TMDB HTTP client configured with DNS servers: ${dnsServers.join(', ')}`,
+      `TMDB HTTP client configured: retries=${this.maxRetries}, timeout=${this.timeoutMs}ms, ` +
+        `DoH endpoints=${this.dohEndpoints.map((e) => e.name).join(', ')}`,
     );
   }
 
   async onModuleInit() {
-    // Pre-warm DNS cache so the first request doesn't pay the resolution cost
+    // Pre-warm DNS cache so the first user request doesn't pay the resolution cost
     try {
-      const addresses = await this.dnsResolver.resolve4('api.themoviedb.org');
-      this.dnsCache.set('api.themoviedb.org', {
-        addresses,
-        expiry: Date.now() + this.dnsCacheTtlMs,
-      });
+      const addresses = await this.resolveViaDoH('api.themoviedb.org');
       this.logger.log(
-        `Pre-resolved api.themoviedb.org → ${addresses.join(', ')}`,
+        `Pre-resolved api.themoviedb.org via DoH → ${addresses.join(', ')}`,
       );
     } catch (err: any) {
-      this.logger.warn(
-        `DNS pre-warm failed for api.themoviedb.org: ${err.message}`,
-      );
+      this.logger.warn(`DNS pre-warm failed: ${err.message}`);
     }
-  }
-
-  async onModuleDestroy() {
-    await this.agent.close();
   }
 
   /**
-   * Custom DNS lookup that uses Cloudflare/Google DNS, with fallback to system DNS.
-   * Matches the signature expected by undici Agent's connect.lookup option.
+   * Resolve a hostname to IPv4 addresses using DNS-over-HTTPS (DoH).
+   * Tries multiple DoH providers (Cloudflare, Google) for redundancy.
+   * This is the Node.js equivalent of Chrome's "Secure DNS" setting.
    */
-  private customLookup(
-    hostname: string,
-    _options: unknown,
-    callback: (
-      err: NodeJS.ErrnoException | null,
-      address: string,
-      family: number,
-    ) => void,
-  ): void {
-    // Check DNS cache first
+  private async resolveViaDoH(hostname: string): Promise<string[]> {
     const cached = this.dnsCache.get(hostname);
     if (cached && cached.expiry > Date.now()) {
-      // Round-robin through cached addresses for basic load distribution
-      const addr =
-        cached.addresses[
-          Math.floor(Math.random() * cached.addresses.length)
-        ];
-      return callback(null, addr, 4);
+      return cached.addresses;
     }
 
-    // Resolve via Cloudflare/Google DNS (IPv4 first, then IPv6 fallback)
-    this.dnsResolver
-      .resolve4(hostname)
-      .then((addresses) => {
-        if (addresses.length === 0) {
-          return this.fallbackToSystemDns(hostname, callback);
-        }
-        this.dnsCache.set(hostname, {
-          addresses,
-          expiry: Date.now() + this.dnsCacheTtlMs,
+    for (const endpoint of this.dohEndpoints) {
+      try {
+        const queryUrl = `${endpoint.url}?name=${encodeURIComponent(hostname)}&type=A`;
+        const raw = await this.httpsGet(queryUrl, {
+          Accept: 'application/dns-json',
         });
-        callback(null, addresses[0], 4);
-      })
-      .catch(() => {
-        // Try IPv6 before falling back to system DNS
-        this.dnsResolver
-          .resolve6(hostname)
-          .then((addresses) => {
-            if (addresses.length === 0) {
-              return this.fallbackToSystemDns(hostname, callback);
-            }
-            callback(null, addresses[0], 6);
-          })
-          .catch(() => this.fallbackToSystemDns(hostname, callback));
-      });
+
+        const parsed: DoHResponse = JSON.parse(raw);
+
+        if (parsed.Status !== 0) {
+          this.logger.warn(
+            `DoH ${endpoint.name} returned status ${parsed.Status} for ${hostname}`,
+          );
+          continue;
+        }
+
+        const addresses = (parsed.Answer || [])
+          .filter((a) => a.type === 1) // type 1 = A record (IPv4)
+          .map((a) => a.data);
+
+        if (addresses.length > 0) {
+          this.dnsCache.set(hostname, {
+            addresses,
+            expiry: Date.now() + this.dnsCacheTtlMs,
+          });
+          this.logger.debug(
+            `DoH ${endpoint.name}: ${hostname} → ${addresses.join(', ')}`,
+          );
+          return addresses;
+        }
+
+        this.logger.warn(
+          `DoH ${endpoint.name} returned no A records for ${hostname}`,
+        );
+      } catch (err: any) {
+        this.logger.warn(
+          `DoH ${endpoint.name} failed for ${hostname}: ${err.message}`,
+        );
+      }
+    }
+
+    throw new Error(
+      `All DoH endpoints failed to resolve ${hostname}. ` +
+        `Tried: ${this.dohEndpoints.map((e) => e.name).join(', ')}`,
+    );
   }
 
-  private fallbackToSystemDns(
-    hostname: string,
-    callback: (
-      err: NodeJS.ErrnoException | null,
-      address: string,
-      family: number,
-    ) => void,
-  ): void {
-    this.logger.warn(
-      `Custom DNS resolution failed for ${hostname}, falling back to system DNS`,
-    );
-    dns.lookup(hostname, 4, (err, address) => {
-      if (err) return callback(err, '', 0);
-      callback(null, address, 4);
+  /**
+   * Make a simple HTTPS GET request. Used for DoH queries (to IP addresses like 1.1.1.1)
+   * and for the actual TMDB API calls (to resolved IPs with proper TLS SNI).
+   */
+  private httpsGet(
+    url: string,
+    headers: Record<string, string>,
+    options?: { servername?: string; timeout?: number },
+  ): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const parsedUrl = new URL(url);
+      const reqOptions: https.RequestOptions = {
+        hostname: parsedUrl.hostname,
+        port: 443,
+        path: parsedUrl.pathname + parsedUrl.search,
+        method: 'GET',
+        headers: {
+          ...headers,
+          'User-Agent': 'PartyOS-Backend/1.0',
+        },
+        timeout: options?.timeout ?? 5000,
+      };
+
+      // If servername is provided, use it for TLS SNI and Host header
+      // This is critical for connecting to a resolved IP while presenting
+      // the correct hostname for certificate validation
+      if (options?.servername) {
+        reqOptions.servername = options.servername;
+        reqOptions.headers = {
+          ...reqOptions.headers,
+          Host: options.servername,
+        };
+      }
+
+      const req = https.get(reqOptions, (res) => {
+        let data = '';
+        res.on('data', (chunk: Buffer) => (data += chunk.toString()));
+        res.on('end', () => {
+          if (
+            res.statusCode &&
+            res.statusCode >= 200 &&
+            res.statusCode < 300
+          ) {
+            resolve(data);
+          } else {
+            reject(
+              new Error(
+                `HTTPS ${res.statusCode}: ${data.substring(0, 200)}`,
+              ),
+            );
+          }
+        });
+        res.on('error', reject);
+      });
+
+      req.on('error', (err) =>
+        reject(new Error(`HTTPS request error: ${err.message}`)),
+      );
+      req.on('timeout', () => {
+        req.destroy();
+        reject(new Error(`HTTPS request timed out after ${reqOptions.timeout}ms`));
+      });
     });
   }
 
   /**
-   * Fetch data from TMDB API with:
-   * - Custom DNS resolution (Cloudflare/Google) to bypass ISP blocking
+   * Fetch JSON data from a TMDB API URL with:
+   * - DNS-over-HTTPS resolution (Cloudflare/Google) to bypass ISP DNS blocking
+   * - Direct HTTPS connection to the resolved IP with proper TLS SNI
    * - Automatic retry with exponential backoff
    * - Circuit breaker to prevent cascading failures
-   * - Configurable timeout
    */
   async fetch<T = any>(url: string): Promise<T> {
     // Circuit breaker: fail fast if too many recent failures
@@ -171,41 +226,33 @@ export class TmdbHttpService implements OnModuleInit, OnModuleDestroy {
       );
     }
 
+    const parsedUrl = new URL(url);
+    const originalHostname = parsedUrl.hostname;
+
     let lastError: Error = new Error('Unknown TMDB error');
 
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
+        // Step 1: Resolve hostname to IP via DoH
+        const addresses = await this.resolveViaDoH(originalHostname);
+        const ip =
+          addresses[Math.floor(Math.random() * addresses.length)];
 
-        const response = await undiciFetch(url, {
-          dispatcher: this.agent,
-          signal: controller.signal,
-        });
+        // Step 2: Build URL with resolved IP instead of hostname
+        const resolvedUrl = new URL(url);
+        resolvedUrl.hostname = ip;
 
-        clearTimeout(timeoutId);
+        // Step 3: Make HTTPS request to the IP with original hostname as TLS SNI
+        const raw = await this.httpsGet(
+          resolvedUrl.toString(),
+          { Accept: 'application/json' },
+          {
+            servername: originalHostname,
+            timeout: this.timeoutMs,
+          },
+        );
 
-        if (!response.ok) {
-          const body = await response.text().catch(() => '');
-
-          // Don't retry client errors (4xx) except 429 rate limit
-          if (
-            response.status >= 400 &&
-            response.status < 500 &&
-            response.status !== 429
-          ) {
-            throw new HttpException(
-              `TMDB API error: ${body || response.statusText}`,
-              response.status,
-            );
-          }
-
-          throw new Error(
-            `TMDB HTTP ${response.status}: ${body || response.statusText}`,
-          );
-        }
-
-        const data = (await response.json()) as T;
+        const data = JSON.parse(raw) as T;
 
         // Reset circuit breaker on success
         this.consecutiveFailures = 0;
@@ -213,17 +260,18 @@ export class TmdbHttpService implements OnModuleInit, OnModuleDestroy {
       } catch (error: any) {
         lastError = error;
 
-        // Propagate client errors immediately without retry
-        if (error instanceof HttpException && error.getStatus() < 500) {
-          throw error;
+        // Don't retry client errors (4xx) except 429 rate limit
+        if (error.message?.includes('HTTPS 4') && !error.message?.includes('HTTPS 429')) {
+          throw new HttpException(
+            `TMDB API error: ${error.message}`,
+            HttpStatus.BAD_REQUEST,
+          );
         }
 
         this.consecutiveFailures++;
 
         // Trip circuit breaker after threshold consecutive failures
-        if (
-          this.consecutiveFailures >= TmdbHttpService.CIRCUIT_THRESHOLD
-        ) {
+        if (this.consecutiveFailures >= TmdbHttpService.CIRCUIT_THRESHOLD) {
           this.circuitOpenUntil =
             Date.now() + TmdbHttpService.CIRCUIT_RESET_MS;
           this.logger.error(
@@ -242,7 +290,7 @@ export class TmdbHttpService implements OnModuleInit, OnModuleDestroy {
     }
 
     this.logger.error(
-      `All ${this.maxRetries + 1} TMDB fetch attempts failed: ${lastError.message}`,
+      `All ${this.maxRetries + 1} TMDB fetch attempts exhausted. Last error: ${lastError.message}`,
     );
     throw new HttpException(
       'Unable to reach TMDB. The service may be temporarily unavailable in your region.',
