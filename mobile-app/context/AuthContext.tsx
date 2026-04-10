@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { api } from '../services/api';
+import { api, setOnUnauthorized } from '../services/api';
 import { storage } from '../services/storage';
 import { AuthResponse, UserRole } from '../types';
 import { DarkTheme, LightTheme, ThemeColors } from '../constants/Colors';
@@ -45,6 +45,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     loadStoredAuth();
     loadStoredTheme();
+  }, []);
+
+  // Set up 401 handler for automatic logout on token expiry
+  useEffect(() => {
+    setOnUnauthorized(() => {
+      storage.clearAll();
+      api.clearCache();
+      setState({
+        isLoading: false,
+        isAuthenticated: false,
+        user: null,
+        token: null,
+      });
+    });
+    return () => setOnUnauthorized(null);
   }, []);
 
   const loadStoredAuth = async () => {
@@ -104,6 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(async () => {
     await storage.clearAll();
+    api.clearCache();
     setState({
       isLoading: false,
       isAuthenticated: false,

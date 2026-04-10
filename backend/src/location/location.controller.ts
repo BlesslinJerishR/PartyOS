@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards, BadRequestException } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { LocationService } from './location.service';
 
@@ -13,10 +13,15 @@ export class LocationController {
     @Query('longitude') longitude: string,
     @Query('radius') radius?: string,
   ) {
-    return this.locationService.getNearbyShowsMap(
-      parseFloat(latitude),
-      parseFloat(longitude),
-      radius ? parseFloat(radius) : undefined,
-    );
+    const lat = parseFloat(latitude);
+    const lng = parseFloat(longitude);
+    if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      throw new BadRequestException('Valid latitude and longitude are required');
+    }
+    const r = radius ? parseFloat(radius) : undefined;
+    if (r !== undefined && (isNaN(r) || r <= 0 || r > 500)) {
+      throw new BadRequestException('Radius must be between 0 and 500 km');
+    }
+    return this.locationService.getNearbyShowsMap(lat, lng, r);
   }
 }

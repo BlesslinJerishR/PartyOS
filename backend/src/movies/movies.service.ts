@@ -21,10 +21,19 @@ export class MoviesService {
     );
   }
 
+  private safeParse<T>(json: string | null): T | null {
+    if (!json) return null;
+    try {
+      return JSON.parse(json) as T;
+    } catch {
+      return null;
+    }
+  }
+
   async getNowPlaying(page: number = 1) {
     const cacheKey = `movies:now_playing:${page}`;
-    const cached = await this.redisService.get(cacheKey);
-    if (cached) return JSON.parse(cached);
+    const cached = this.safeParse(await this.redisService.get(cacheKey));
+    if (cached) return cached;
 
     const url = `${this.baseUrl}/movie/now_playing?api_key=${this.apiKey}&page=${page}`;
     const data = await this.tmdbHttp.fetch(url);
@@ -35,8 +44,8 @@ export class MoviesService {
 
   async getUpcoming(page: number = 1) {
     const cacheKey = `movies:upcoming:${page}`;
-    const cached = await this.redisService.get(cacheKey);
-    if (cached) return JSON.parse(cached);
+    const cached = this.safeParse(await this.redisService.get(cacheKey));
+    if (cached) return cached;
 
     const url = `${this.baseUrl}/movie/upcoming?api_key=${this.apiKey}&page=${page}`;
     const data = await this.tmdbHttp.fetch(url);
@@ -47,8 +56,8 @@ export class MoviesService {
 
   async getPopular(page: number = 1) {
     const cacheKey = `movies:popular:${page}`;
-    const cached = await this.redisService.get(cacheKey);
-    if (cached) return JSON.parse(cached);
+    const cached = this.safeParse(await this.redisService.get(cacheKey));
+    if (cached) return cached;
 
     const url = `${this.baseUrl}/movie/popular?api_key=${this.apiKey}&page=${page}`;
     const data = await this.tmdbHttp.fetch(url);
@@ -59,8 +68,8 @@ export class MoviesService {
 
   async getMovieDetails(movieId: number) {
     const cacheKey = `movies:details:${movieId}`;
-    const cached = await this.redisService.get(cacheKey);
-    if (cached) return JSON.parse(cached);
+    const cached = this.safeParse(await this.redisService.get(cacheKey));
+    if (cached) return cached;
 
     const url = `${this.baseUrl}/movie/${movieId}?api_key=${this.apiKey}`;
     const data = await this.tmdbHttp.fetch(url);
@@ -71,8 +80,8 @@ export class MoviesService {
 
   async searchMovies(query: string, page: number = 1) {
     const cacheKey = `movies:search:${query}:${page}`;
-    const cached = await this.redisService.get(cacheKey);
-    if (cached) return JSON.parse(cached);
+    const cached = this.safeParse(await this.redisService.get(cacheKey));
+    if (cached) return cached;
 
     const url = `${this.baseUrl}/search/movie?api_key=${this.apiKey}&query=${encodeURIComponent(query)}&page=${page}`;
     const data = await this.tmdbHttp.fetch(url);

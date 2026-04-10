@@ -15,6 +15,15 @@ export class SnacksService {
     private readonly redisService: RedisService,
   ) {}
 
+  private safeParse<T>(json: string | null): T | null {
+    if (!json) return null;
+    try {
+      return JSON.parse(json) as T;
+    } catch {
+      return null;
+    }
+  }
+
   async create(hostId: string, dto: CreateSnackDto) {
     await this.verifyVenueOwnership(dto.venueId, hostId);
 
@@ -34,8 +43,8 @@ export class SnacksService {
 
   async findByVenue(venueId: string) {
     const cacheKey = `snacks:venue:${venueId}`;
-    const cached = await this.redisService.get(cacheKey);
-    if (cached) return JSON.parse(cached);
+    const cached = this.safeParse(await this.redisService.get(cacheKey));
+    if (cached) return cached;
 
     const snacks = await this.prisma.snack.findMany({
       where: { venueId },

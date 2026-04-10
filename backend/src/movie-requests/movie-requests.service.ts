@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { MovieRequestStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -15,7 +16,27 @@ export class MovieRequestsService {
     private readonly redisService: RedisService,
   ) {}
 
+  private safeParse<T>(json: string | null): T | null {
+    if (!json) return null;
+    try {
+      return JSON.parse(json) as T;
+    } catch {
+      return null;
+    }
+  }
+
   async create(guestId: string, dto: CreateMovieRequestDto) {
+    if (guestId === dto.hostId) {
+      throw new BadRequestException('Cannot send a movie request to yourself');
+    }
+
+    const host = await this.prisma.user.findUnique({
+      where: { id: dto.hostId },
+    });
+    if (!host || host.role !== 'HOST') {
+      throw new NotFoundException('Host not found');
+    }
+
     const request = await this.prisma.movieRequest.create({
       data: {
         guestId,
@@ -38,8 +59,8 @@ export class MovieRequestsService {
 
   async findByHost(hostId: string) {
     const cacheKey = `movie-requests:host:${hostId}`;
-    const cached = await this.redisService.get(cacheKey);
-    if (cached) return JSON.parse(cached);
+    const cached = this.safeParse(await this.redisService.get(cacheKey));
+    if (cached) return cached;
 
     const requests = await this.prisma.movieRequest.findMany({
       where: { hostId },
@@ -55,8 +76,8 @@ export class MovieRequestsService {
 
   async findByGuest(guestId: string) {
     const cacheKey = `movie-requests:guest:${guestId}`;
-    const cached = await this.redisService.get(cacheKey);
-    if (cached) return JSON.parse(cached);
+    const cached = this.safeParse(await this.redisService.get(cacheKey));
+    if (cached) return cached;
 
     const requests = await this.prisma.movieRequest.findMany({
       where: { guestId },

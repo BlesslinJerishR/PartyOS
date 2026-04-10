@@ -29,13 +29,28 @@ export default function SignupScreen() {
       return;
     }
 
+    if (!/^[a-zA-Z0-9_-]+$/.test(username.trim())) {
+      Alert.alert('Error', 'Username can only contain letters, numbers, underscores, and hyphens');
+      return;
+    }
+
+    if (username.trim().length < 3 || username.trim().length > 30) {
+      Alert.alert('Error', 'Username must be between 3 and 30 characters');
+      return;
+    }
+
     if (password !== confirmPassword) {
       Alert.alert('Error', 'Passwords do not match');
       return;
     }
 
-    if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+    if (password.length < 8) {
+      Alert.alert('Error', 'Password must be at least 8 characters');
+      return;
+    }
+
+    if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
+      Alert.alert('Error', 'Password must contain at least one uppercase letter, one lowercase letter, and one number');
       return;
     }
 
@@ -75,6 +90,7 @@ export default function SignupScreen() {
               placeholderTextColor={colors.textLight}
               autoCapitalize="none"
               autoCorrect={false}
+              maxLength={30}
             />
           </View>
 
@@ -87,6 +103,7 @@ export default function SignupScreen() {
               placeholder="Create a password"
               placeholderTextColor={colors.textLight}
               secureTextEntry
+              maxLength={128}
             />
           </View>
 
@@ -99,6 +116,7 @@ export default function SignupScreen() {
               placeholder="Confirm your password"
               placeholderTextColor={colors.textLight}
               secureTextEntry
+              maxLength={128}
             />
           </View>
 

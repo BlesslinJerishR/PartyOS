@@ -6,6 +6,7 @@ import {
   Body,
   Param,
   UseGuards,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { MovieRequestStatus } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -45,7 +46,7 @@ export class MovieRequestsController {
   @Patch(':id/accept')
   @UseGuards(RolesGuard)
   @Roles('HOST' as any)
-  accept(@Param('id') id: string, @CurrentUser('id') userId: string) {
+  accept(@Param('id', ParseUUIDPipe) id: string, @CurrentUser('id') userId: string) {
     return this.movieRequestsService.updateStatus(
       id,
       userId,
@@ -56,7 +57,7 @@ export class MovieRequestsController {
   @Patch(':id/decline')
   @UseGuards(RolesGuard)
   @Roles('HOST' as any)
-  decline(@Param('id') id: string, @CurrentUser('id') userId: string) {
+  decline(@Param('id', ParseUUIDPipe) id: string, @CurrentUser('id') userId: string) {
     return this.movieRequestsService.updateStatus(
       id,
       userId,

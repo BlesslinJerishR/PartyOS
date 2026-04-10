@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 
 const ONBOARDING_KEY = 'partyos_onboarding_complete';
 const TOKEN_KEY = 'partyos_auth_token';
@@ -15,20 +16,39 @@ export const storage = {
   },
 
   async getToken(): Promise<string | null> {
-    return AsyncStorage.getItem(TOKEN_KEY);
+    try {
+      return await SecureStore.getItemAsync(TOKEN_KEY);
+    } catch {
+      // Fallback to AsyncStorage for environments where SecureStore is unavailable
+      return AsyncStorage.getItem(TOKEN_KEY);
+    }
   },
 
   async setToken(token: string): Promise<void> {
-    await AsyncStorage.setItem(TOKEN_KEY, token);
+    try {
+      await SecureStore.setItemAsync(TOKEN_KEY, token);
+    } catch {
+      await AsyncStorage.setItem(TOKEN_KEY, token);
+    }
   },
 
   async removeToken(): Promise<void> {
-    await AsyncStorage.removeItem(TOKEN_KEY);
+    try {
+      await SecureStore.deleteItemAsync(TOKEN_KEY);
+    } catch {
+      await AsyncStorage.removeItem(TOKEN_KEY);
+    }
   },
 
   async getUser(): Promise<any | null> {
     const data = await AsyncStorage.getItem(USER_KEY);
-    return data ? JSON.parse(data) : null;
+    if (!data) return null;
+    try {
+      return JSON.parse(data);
+    } catch {
+      await AsyncStorage.removeItem(USER_KEY);
+      return null;
+    }
   },
 
   async setUser(user: any): Promise<void> {
@@ -40,6 +60,11 @@ export const storage = {
   },
 
   async clearAll(): Promise<void> {
-    await AsyncStorage.multiRemove([TOKEN_KEY, USER_KEY]);
+    await AsyncStorage.multiRemove([USER_KEY]);
+    try {
+      await SecureStore.deleteItemAsync(TOKEN_KEY);
+    } catch {
+      await AsyncStorage.removeItem(TOKEN_KEY);
+    }
   },
 };

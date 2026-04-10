@@ -30,7 +30,7 @@ export class SnacksController {
   }
 
   @Get('venue/:venueId')
-  findByVenue(@Param('venueId') venueId: string) {
+  findByVenue(@Param('venueId', ParseUUIDPipe) venueId: string) {
     return this.snacksService.findByVenue(venueId);
   }
 
@@ -38,7 +38,7 @@ export class SnacksController {
   @UseGuards(RolesGuard)
   @Roles('HOST' as any)
   update(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser('id') userId: string,
     @Body() dto: UpdateSnackDto,
   ) {
@@ -48,7 +48,7 @@ export class SnacksController {
   @Delete(':id')
   @UseGuards(RolesGuard)
   @Roles('HOST' as any)
-  remove(@Param('id') id: string, @CurrentUser('id') userId: string) {
+  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser('id') userId: string) {
     return this.snacksService.remove(id, userId);
   }
 }

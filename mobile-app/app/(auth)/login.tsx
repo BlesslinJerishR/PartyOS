@@ -64,6 +64,7 @@ export default function LoginScreen() {
               placeholderTextColor={colors.textLight}
               autoCapitalize="none"
               autoCorrect={false}
+              maxLength={30}
             />
           </View>
 
@@ -76,6 +77,7 @@ export default function LoginScreen() {
               placeholder="Enter your password"
               placeholderTextColor={colors.textLight}
               secureTextEntry
+              maxLength={128}
             />
           </View>
 

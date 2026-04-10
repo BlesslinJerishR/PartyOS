@@ -2,6 +2,14 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { storage } from './storage';
 
+// ── Auth event listener for 401 handling ──────────────────────────
+type AuthEventListener = () => void;
+let onUnauthorized: AuthEventListener | null = null;
+
+export function setOnUnauthorized(listener: AuthEventListener | null) {
+  onUnauthorized = listener;
+}
+
 // ── In-memory response cache ──────────────────────────────────────
 interface CacheEntry<T = unknown> {
   data: T;
@@ -10,6 +18,7 @@ interface CacheEntry<T = unknown> {
 
 const responseCache = new Map<string, CacheEntry>();
 const DEFAULT_CACHE_TTL = 30_000; // 30 seconds
+const MAX_CACHE_SIZE = 200;
 
 function getCached<T>(key: string): T | null {
   const entry = responseCache.get(key);
@@ -24,7 +33,7 @@ function getCached<T>(key: string): T | null {
 function setCache<T>(key: string, data: T, ttl: number = DEFAULT_CACHE_TTL): void {
   responseCache.set(key, { data, expiry: Date.now() + ttl });
   // Evict stale entries when cache grows large
-  if (responseCache.size > 200) {
+  if (responseCache.size > MAX_CACHE_SIZE) {
     const now = Date.now();
     for (const [k, v] of responseCache) {
       if (now > v.expiry) responseCache.delete(k);
@@ -111,6 +120,13 @@ async function request<T>(
       if (response.status === 503 && attempt < MAX_RETRIES) {
         await sleep(1000 * (attempt + 1));
         continue;
+      }
+
+      // Handle 401 Unauthorized - trigger automatic logout
+      if (response.status === 401) {
+        clearCache();
+        onUnauthorized?.();
+        throw new Error('Session expired. Please log in again.');
       }
 
       if (!response.ok) {

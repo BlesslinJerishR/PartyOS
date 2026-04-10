@@ -10,9 +10,16 @@ export class LocationService {
   ) {}
 
   async getNearbyShowsMap(latitude: number, longitude: number, radiusKm: number = 50) {
-    const cacheKey = `location:map:${latitude.toFixed(2)}:${longitude.toFixed(2)}:${radiusKm}`;
+    const clampedRadius = Math.min(Math.max(radiusKm, 1), 500);
+    const cacheKey = `location:map:${latitude.toFixed(2)}:${longitude.toFixed(2)}:${clampedRadius}`;
     const cached = await this.redisService.get(cacheKey);
-    if (cached) return JSON.parse(cached);
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch {
+        await this.redisService.del(cacheKey);
+      }
+    }
 
     const now = new Date();
 
@@ -64,7 +71,7 @@ export class LocationService {
           show.venue.latitude,
           show.venue.longitude,
         );
-        return distance <= radiusKm;
+        return distance <= clampedRadius;
       });
 
     const result = {
