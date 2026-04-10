@@ -221,4 +221,12 @@ In Request a movie screen
 
 X
 
-OPTIMIZATIONS
+# OPTIMIZATIONS
+
+Optimize the whole application end to end both the frontend and backend. Don't change any Ui/Ux or business logics. All HTML, CSS, JS. for React performance hooks -> useMemo, useCallback, React.memo, memoize, useRef, useTransition, useDeferredValue, List Virtualization, Image Optimization, Dynamic Imports, Script Optimization, Reduce bundle size, Cache aggressively -> HTTP caching, SWR / React Query, CDN caching, Avoid unnecessary state, Split components -> Smaller components re-render less and other optimizations
+
+Completely optimize the backend also end to end like a Enterprise Grade level applicaion.
+
+Don't change any business logics or Ui/Ux
+
+Optimize the whole application end to end like a industry standard enterprise grade level application and give the performance improvements report at last. make no mistakes

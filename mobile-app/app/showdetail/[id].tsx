@@ -21,6 +21,7 @@ import {
   Star,
   Armchair,
   Cookie,
+  Lock,
 } from 'lucide-react-native';
 
 export default function ShowDetailScreen() {
@@ -99,9 +100,12 @@ export default function ShowDetailScreen() {
               {show.status === 'NOW_PLAYING' ? 'LIVE' : show.status}
             </Text>
           </View>
-          <Text style={[styles.priceTag, { color: colors.primary, fontFamily: Fonts.bold }]}>
-            {show.isPrivate ? '🔒 ' : ''}{show.isFree ? 'Free Entry' : `${show.price}`}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            {show.isPrivate && <Lock size={14} color={colors.primary} strokeWidth={2} style={{ marginRight: 4 }} />}
+            <Text style={[styles.priceTag, { color: colors.primary, fontFamily: Fonts.bold }]}>
+              {show.isFree ? 'Free Entry' : `${show.price}`}
+            </Text>
+          </View>
         </View>
 
         <Text style={[styles.title, { color: colors.text, fontFamily: Fonts.hero }]}>{show.movieTitle}</Text>

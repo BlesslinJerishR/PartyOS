@@ -9,13 +9,17 @@ import {
   Alert,
   Modal,
   RefreshControl,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth, useTheme } from '../../context/AuthContext';
 import { api } from '../../services/api';
 import { Fonts } from '../../constants/Fonts';
-import { MovieRequest } from '../../types';
+import { MovieRequest, TMDBMovie, TMDBResponse } from '../../types';
 import { User, LogOut, Send, X, Search, Sun, Moon } from 'lucide-react-native';
+
+const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/w200';
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
@@ -26,10 +30,12 @@ export default function ProfileScreen() {
   const [showRequestModal, setShowRequestModal] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [selectedMovie, setSelectedMovie] = useState<any>(null);
-  const [hostId, setHostId] = useState('');
-  const [message, setMessage] = useState('');
+  const [searchResults, setSearchResults] = useState<TMDBMovie[]>([]);
+  const [selectedMovie, setSelectedMovie] = useState<TMDBMovie | null>(null);
+  const [hostQuery, setHostQuery] = useState('');
+  const [hostSuggestions, setHostSuggestions] = useState<{ id: string; username: string }[]>([]);
+  const [selectedHost, setSelectedHost] = useState<{ id: string; username: string } | null>(null);
+  const [searching, setSearching] = useState(false);
 
   const loadRequests = useCallback(async () => {
     try {
@@ -52,25 +58,44 @@ export default function ProfileScreen() {
 
   const searchMovies = async () => {
     if (!searchQuery.trim()) return;
+    setSearching(true);
     try {
-      const data = (await api.movies.search(searchQuery)) as any;
+      const data = (await api.movies.search(searchQuery)) as TMDBResponse;
       setSearchResults(data.results || []);
+      if (!data.results?.length) {
+        Alert.alert('No Results', 'No movies found for your search.');
+      }
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+      Alert.alert('Search Failed', error.message);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const searchHosts = async (query: string) => {
+    setHostQuery(query);
+    if (!query.trim()) {
+      setHostSuggestions([]);
+      return;
+    }
+    try {
+      const data = (await api.users.searchHosts(query)) as { id: string; username: string }[];
+      setHostSuggestions(data);
+    } catch {
+      setHostSuggestions([]);
     }
   };
 
   const handleSendRequest = async () => {
-    if (!selectedMovie || !hostId.trim()) {
-      Alert.alert('Error', 'Please select a movie and enter a host ID');
+    if (!selectedMovie || !selectedHost) {
+      Alert.alert('Error', 'Please select a movie and a host');
       return;
     }
     try {
       await api.movieRequests.create({
-        hostId,
+        hostId: selectedHost.id,
         tmdbMovieId: selectedMovie.id,
         movieTitle: selectedMovie.title,
-        message: message || undefined,
       });
       setShowRequestModal(false);
       resetForm();
@@ -85,8 +110,9 @@ export default function ProfileScreen() {
     setSearchQuery('');
     setSearchResults([]);
     setSelectedMovie(null);
-    setHostId('');
-    setMessage('');
+    setHostQuery('');
+    setHostSuggestions([]);
+    setSelectedHost(null);
   };
 
   const handleLogout = () => {
@@ -209,57 +235,104 @@ export default function ProfileScreen() {
                 onChangeText={setSearchQuery}
                 onSubmitEditing={searchMovies}
               />
-              <TouchableOpacity style={[styles.searchBtn, { backgroundColor: colors.primary }]} onPress={searchMovies}>
-                <Search size={18} color={colors.white} strokeWidth={2} />
+              <TouchableOpacity style={[styles.searchBtn, { backgroundColor: colors.primary }]} onPress={searchMovies} disabled={searching}>
+                {searching ? (
+                  <ActivityIndicator size="small" color={colors.white} />
+                ) : (
+                  <Search size={18} color={colors.white} strokeWidth={2} />
+                )}
               </TouchableOpacity>
             </View>
 
             {selectedMovie && (
-              <View style={[styles.selectedBadge, { backgroundColor: colors.surface, borderColor: colors.primary }]}>
-                <Text style={[styles.selectedText, { color: colors.primary, fontFamily: Fonts.semiBold }]}>
-                  Selected: {selectedMovie.title}
+              <View style={[styles.selectedMovieCard, { backgroundColor: colors.surface, borderColor: colors.primary }]}>
+                {selectedMovie.poster_path && (
+                  <Image
+                    source={{ uri: `${TMDB_IMAGE_BASE}${selectedMovie.poster_path}` }}
+                    style={styles.selectedMoviePoster}
+                  />
+                )}
+                <Text style={[styles.selectedMovieTitle, { color: colors.text, fontFamily: Fonts.semiBold }]} numberOfLines={2}>
+                  {selectedMovie.title}
                 </Text>
+                <TouchableOpacity
+                  style={[styles.changeMovieBtn, { borderColor: colors.border }]}
+                  onPress={() => {
+                    setSelectedMovie(null);
+                    setSearchResults([]);
+                    setSearchQuery('');
+                  }}
+                >
+                  <Text style={[styles.changeMovieBtnText, { color: colors.primary, fontFamily: Fonts.medium }]}>Change Movie</Text>
+                </TouchableOpacity>
               </View>
             )}
 
             {searchResults.length > 0 && !selectedMovie && (
-              <View style={styles.resultsList}>
-                {searchResults.slice(0, 8).map((movie: any) => (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.movieList}>
+                {searchResults.slice(0, 10).map((movie) => (
                   <TouchableOpacity
                     key={movie.id}
-                    style={[styles.resultItem, { borderBottomColor: colors.border }]}
+                    style={styles.movieOption}
                     onPress={() => {
                       setSelectedMovie(movie);
                       setSearchResults([]);
                     }}
                   >
-                    <Text style={[styles.resultTitle, { color: colors.text, fontFamily: Fonts.regular }]}>{movie.title}</Text>
-                    <Text style={[styles.resultYear, { color: colors.textSecondary }]}>
-                      {movie.release_date?.split('-')[0]}
+                    {movie.poster_path && (
+                      <Image
+                        source={{ uri: `${TMDB_IMAGE_BASE}${movie.poster_path}` }}
+                        style={styles.moviePoster}
+                      />
+                    )}
+                    <Text style={[styles.movieOptionTitle, { color: colors.text, fontFamily: Fonts.regular }]} numberOfLines={2}>
+                      {movie.title}
                     </Text>
                   </TouchableOpacity>
                 ))}
-              </View>
+              </ScrollView>
             )}
 
-            <Text style={[styles.fieldLabel, { color: colors.text, fontFamily: Fonts.semiBold }]}>Host ID</Text>
-            <TextInput
-              style={[styles.modalInput, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border, fontFamily: Fonts.regular }]}
-              placeholder="Enter the host user ID"
-              placeholderTextColor={colors.textLight}
-              value={hostId}
-              onChangeText={setHostId}
-            />
-
-            <Text style={[styles.fieldLabel, { color: colors.text, fontFamily: Fonts.semiBold }]}>Message (optional)</Text>
-            <TextInput
-              style={[styles.modalInput, styles.textArea, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border, fontFamily: Fonts.regular }]}
-              placeholder="Why you want this movie screened"
-              placeholderTextColor={colors.textLight}
-              value={message}
-              onChangeText={setMessage}
-              multiline
-            />
+            <Text style={[styles.fieldLabel, { color: colors.text, fontFamily: Fonts.semiBold }]}>Search Host</Text>
+            {selectedHost ? (
+              <View style={[styles.selectedHostBadge, { backgroundColor: colors.surface, borderColor: colors.primary }]}>
+                <Text style={[styles.selectedHostText, { color: colors.primary, fontFamily: Fonts.semiBold }]}>
+                  {selectedHost.username}
+                </Text>
+                <TouchableOpacity onPress={() => { setSelectedHost(null); setHostQuery(''); }}>
+                  <X size={16} color={colors.primary} strokeWidth={2} />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <>
+                <TextInput
+                  style={[styles.modalInput, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border, fontFamily: Fonts.regular }]}
+                  placeholder="Type host username to search"
+                  placeholderTextColor={colors.textLight}
+                  value={hostQuery}
+                  onChangeText={searchHosts}
+                />
+                {hostSuggestions.length > 0 && (
+                  <View style={[styles.suggestionsContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                    {hostSuggestions.map((host) => (
+                      <TouchableOpacity
+                        key={host.id}
+                        style={[styles.suggestionItem, { borderBottomColor: colors.border }]}
+                        onPress={() => {
+                          setSelectedHost(host);
+                          setHostSuggestions([]);
+                          setHostQuery(host.username);
+                        }}
+                      >
+                        <Text style={[styles.suggestionText, { color: colors.text, fontFamily: Fonts.regular }]}>
+                          {host.username}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </>
+            )}
 
             <TouchableOpacity style={[styles.sendBtn, { backgroundColor: colors.primary }]} onPress={handleSendRequest}>
               <Text style={[styles.sendBtnText, { color: colors.white, fontFamily: Fonts.semiBold }]}>Send Request</Text>
@@ -405,30 +478,77 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     justifyContent: 'center',
   },
-  selectedBadge: {
+  selectedMovieCard: {
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  selectedMoviePoster: {
+    width: 100,
+    height: 150,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+  selectedMovieTitle: {
+    fontSize: 15,
+    textAlign: 'center',
+  },
+  changeMovieBtn: {
+    marginTop: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  changeMovieBtnText: {
+    fontSize: 13,
+  },
+  movieList: {
+    marginBottom: 16,
+  },
+  movieOption: {
+    width: 100,
+    marginRight: 12,
+    alignItems: 'center',
+  },
+  moviePoster: {
+    width: 80,
+    height: 120,
+    borderRadius: 8,
+  },
+  movieOptionTitle: {
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  selectedHostBadge: {
     borderRadius: 12,
     padding: 12,
     marginBottom: 16,
     borderWidth: 1,
-  },
-  selectedText: {
-    fontSize: 14,
-  },
-  resultsList: {
-    marginBottom: 16,
-  },
-  resultItem: {
-    paddingVertical: 10,
-    borderBottomWidth: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  resultTitle: {
-    fontSize: 15,
-    flex: 1,
+  selectedHostText: {
+    fontSize: 14,
   },
-  resultYear: {
-    fontSize: 13,
+  suggestionsContainer: {
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 12,
+    marginTop: -8,
+    overflow: 'hidden',
+  },
+  suggestionItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+  },
+  suggestionText: {
+    fontSize: 14,
   },
   modalInput: {
     borderRadius: 12,
@@ -437,10 +557,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     borderWidth: 1,
     marginBottom: 12,
-  },
-  textArea: {
-    minHeight: 80,
-    textAlignVertical: 'top',
   },
   sendBtn: {
     paddingVertical: 14,

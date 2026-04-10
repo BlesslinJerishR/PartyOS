@@ -164,7 +164,7 @@ export default function BookingScreen() {
             justifyContent: 'center',
           }}
           disabled={isBooked}
-          onPress={() => setSelectedSeatId(seat.id)}
+          onPress={() => setSelectedSeatId(selectedSeatId === seat.id ? null : seat.id)}
           activeOpacity={0.7}
         >
           {isBooked ? (
@@ -215,10 +215,11 @@ export default function BookingScreen() {
       </View>
 
       <View style={styles.screenContainer}>
-        <View style={[styles.curvedScreen, { backgroundColor: colors.text }]} />
-        <Text style={[styles.screenWayText, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>
-          Screen this way
-        </Text>
+        <View style={[styles.curvedScreen, { backgroundColor: colors.text }]}>
+          <Text style={[styles.screenWayText, { color: colors.background, fontFamily: Fonts.regular }]}>
+            Screen this way
+          </Text>
+        </View>
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.gridContainer}>
@@ -335,13 +336,14 @@ const styles = StyleSheet.create({
   },
   curvedScreen: {
     width: '100%',
-    height: 8,
+    height: 34,
     borderTopLeftRadius: 180,
     borderTopRightRadius: 180,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   screenWayText: {
     fontSize: 10,
-    marginTop: 6,
     letterSpacing: 1.5,
     textTransform: 'uppercase',
   },

@@ -52,4 +52,9 @@ export class UsersController {
       radius ? parseFloat(radius) : undefined,
     );
   }
+
+  @Get('search-hosts')
+  searchHosts(@Query('q') query: string) {
+    return this.usersService.searchHosts(query || '');
+  }
 }

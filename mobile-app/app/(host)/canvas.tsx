@@ -178,14 +178,19 @@ export default function CanvasScreen() {
       return;
     }
 
-    const row = parseInt(seatRow, 10);
-    const col = parseInt(seatCol, 10);
+    const row = parseInt(seatRow, 10) - 1;
+    const col = parseInt(seatCol, 10) - 1;
     const dims = SEAT_DIMENSIONS[seatType];
+
+    if (row < 0 || col < 0) {
+      Alert.alert('Error', 'Row and Column must be at least 1');
+      return;
+    }
 
     if (!canPlaceSeat(seatType, row, col)) {
       Alert.alert(
         'Overlap',
-        `Cannot place ${SEAT_TYPE_LABELS[seatType]} (${dims.cols}x${dims.rows}) at row ${row}, col ${col}. It overlaps with an existing seat.`,
+        `Cannot place ${SEAT_TYPE_LABELS[seatType]} (${dims.cols}x${dims.rows}) at row ${row + 1}, col ${col + 1}. It overlaps with an existing seat.`,
       );
       return;
     }
@@ -372,17 +377,17 @@ export default function CanvasScreen() {
           <View style={styles.screenIndicator}>
             <View style={[styles.curvedScreen, { backgroundColor: colors.text }]}>
               {selectedVenue.screenType === 'TV_4K' ? (
-                <Monitor size={16} color={colors.white} strokeWidth={1.8} />
+                <Monitor size={14} color={colors.background} strokeWidth={1.8} />
               ) : (
-                <Projector size={16} color={colors.white} strokeWidth={1.8} />
+                <Projector size={14} color={colors.background} strokeWidth={1.8} />
               )}
-              <Text style={[styles.screenTypeLabel, { color: colors.white, fontFamily: Fonts.semiBold }]}>
+              <Text style={[styles.screenTypeLabel, { color: colors.background, fontFamily: Fonts.regular }]}>
                 {selectedVenue.screenType === 'TV_4K' ? '4K TV' : 'Projector'}
               </Text>
+              <Text style={[styles.screenWayText, { color: colors.background, fontFamily: Fonts.regular }]}>
+                Screen this way
+              </Text>
             </View>
-            <Text style={[styles.screenWayText, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>
-              Screen this way
-            </Text>
           </View>
 
           <View style={styles.canvasContainer}>
@@ -584,7 +589,7 @@ export default function CanvasScreen() {
             <View style={styles.rowInputs}>
               <TextInput
                 style={[styles.modalInput, styles.halfInput, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border, fontFamily: Fonts.regular }]}
-                placeholder="Row"
+                placeholder="Row (from 1)"
                 placeholderTextColor={colors.textLight}
                 value={seatRow}
                 onChangeText={setSeatRow}
@@ -592,7 +597,7 @@ export default function CanvasScreen() {
               />
               <TextInput
                 style={[styles.modalInput, styles.halfInput, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border, fontFamily: Fonts.regular }]}
-                placeholder="Column"
+                placeholder="Column (from 1)"
                 placeholderTextColor={colors.textLight}
                 value={seatCol}
                 onChangeText={setSeatCol}
@@ -671,7 +676,7 @@ const styles = StyleSheet.create({
   },
   curvedScreen: {
     width: '100%',
-    height: 36,
+    height: 34,
     borderTopLeftRadius: 180,
     borderTopRightRadius: 180,
     flexDirection: 'row',
@@ -680,11 +685,10 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   screenTypeLabel: {
-    fontSize: 12,
+    fontSize: 10,
   },
   screenWayText: {
-    fontSize: 11,
-    marginTop: 6,
+    fontSize: 10,
     letterSpacing: 1,
     textTransform: 'uppercase',
   },

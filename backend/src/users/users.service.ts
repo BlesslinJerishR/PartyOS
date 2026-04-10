@@ -94,4 +94,15 @@ export class UsersService {
   private toRad(deg: number): number {
     return deg * (Math.PI / 180);
   }
+
+  async searchHosts(query: string) {
+    return this.prisma.user.findMany({
+      where: {
+        role: 'HOST',
+        username: { contains: query, mode: 'insensitive' },
+      },
+      select: { id: true, username: true },
+      take: 10,
+    });
+  }
 }

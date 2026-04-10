@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   Alert,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { api } from '../../services/api';
@@ -93,6 +94,9 @@ export default function TicketsScreen() {
       {active.map((ticket) => (
         <View key={ticket.id} style={[styles.ticketCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.ticketTop}>
+            {ticket.show?.moviePoster && (
+              <Image source={{ uri: ticket.show.moviePoster }} style={styles.posterThumb} />
+            )}
             <View style={styles.ticketInfo}>
               <Text style={[styles.movieTitle, { color: colors.text, fontFamily: Fonts.semiBold }]}>
                 {ticket.show?.movieTitle || 'Show'}
@@ -168,6 +172,9 @@ export default function TicketsScreen() {
           {past.map((ticket) => (
             <View key={ticket.id} style={[styles.ticketCard, styles.pastCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <View style={styles.ticketTop}>
+                {ticket.show?.moviePoster && (
+                  <Image source={{ uri: ticket.show.moviePoster }} style={styles.posterThumb} />
+                )}
                 <View style={styles.ticketInfo}>
                   <Text style={[styles.movieTitle, { color: colors.text, fontFamily: Fonts.semiBold }]}>
                     {ticket.show?.movieTitle || 'Show'}
@@ -250,6 +257,12 @@ const styles = StyleSheet.create({
   ticketTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+  },
+  posterThumb: {
+    width: 50,
+    height: 75,
+    borderRadius: 8,
+    marginRight: 12,
   },
   ticketInfo: {
     flex: 1,

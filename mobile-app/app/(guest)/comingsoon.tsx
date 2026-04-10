@@ -15,7 +15,7 @@ import { api } from '../../services/api';
 import { useTheme } from '../../context/AuthContext';
 import { Fonts } from '../../constants/Fonts';
 import { Show } from '../../types';
-import { Calendar, Clock, MapPin } from 'lucide-react-native';
+import { Calendar, Clock, MapPin, Lock } from 'lucide-react-native';
 
 export default function ComingSoonScreen() {
   const [shows, setShows] = useState<Show[]>([]);
@@ -95,7 +95,9 @@ export default function ComingSoonScreen() {
             onPress={() => router.push(`/showdetail/${show.id}`)}  
           >
             {show.moviePoster && (
-              <Image source={{ uri: show.moviePoster }} style={styles.poster} />
+              <View style={styles.posterContainer}>
+                <Image source={{ uri: show.moviePoster }} style={styles.poster} resizeMode="cover" />
+              </View>
             )}
             <View style={styles.showInfo}>
               <View style={[styles.countdownBadge, { backgroundColor: colors.primary + '20' }]}>
@@ -125,9 +127,12 @@ export default function ComingSoonScreen() {
                   <Text style={[styles.metaText, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>{show.venue.name}</Text>
                 </View>
               )}
-              <Text style={[styles.price, { color: colors.primary, fontFamily: Fonts.semiBold }]}>
-                {show.isPrivate ? '🔒 ' : ''}{show.isFree ? 'Free Entry' : `${show.price}`}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                {show.isPrivate && <Lock size={12} color={colors.primary} strokeWidth={2} style={{ marginRight: 4 }} />}
+                <Text style={[styles.price, { color: colors.primary, fontFamily: Fonts.semiBold }]}>
+                  {show.isFree ? 'Free Entry' : `${show.price}`}
+                </Text>
+              </View>
             </View>
           </TouchableOpacity>
         ))
@@ -163,9 +168,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderWidth: 1,
   },
-  poster: {
+  posterContainer: {
     width: 100,
-    height: 150,
+  },
+  poster: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    bottom: 0,
+    width: 100,
   },
   showInfo: {
     flex: 1,

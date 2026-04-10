@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -55,6 +55,7 @@ export default function ShowsScreen() {
   const [privatePassword, setPrivatePassword] = useState('');
   const [searching, setSearching] = useState(false);
   const { colors } = useTheme();
+  const searchInputRef = useRef<TextInput>(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -235,9 +236,12 @@ export default function ShowsScreen() {
                   })}
                 </Text>
               </View>
-              <Text style={[styles.showPriceInfo, { color: colors.primary, fontFamily: Fonts.medium }]}>
-                {show.isPrivate ? '🔒 Private' : ''}{show.isPrivate && !show.isFree ? ' · ' : ''}{show.isFree && !show.isPrivate ? 'Free Entry' : !show.isFree ? `₹${show.price}` : show.isPrivate && show.isFree ? ' Free Entry' : ''}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                {show.isPrivate && <Lock size={12} color={colors.primary} strokeWidth={2} style={{ marginRight: 4 }} />}
+                <Text style={[styles.showPriceInfo, { color: colors.primary, fontFamily: Fonts.medium }]}>
+                  {show.isPrivate ? 'Private' : ''}{show.isPrivate && !show.isFree ? ' · ' : ''}{show.isFree && !show.isPrivate ? 'Free Entry' : !show.isFree ? `₹${show.price}` : show.isPrivate && show.isFree ? ' Free Entry' : ''}
+                </Text>
+              </View>
             </View>
             <View style={styles.showStatus}>
               <View
@@ -291,6 +295,7 @@ export default function ShowsScreen() {
             <Text style={[styles.fieldLabel, { color: colors.text, fontFamily: Fonts.semiBold }]}>Search Movie</Text>
             <View style={styles.searchRow}>
               <TextInput
+                ref={searchInputRef}
                 style={[styles.searchInput, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border, fontFamily: Fonts.regular }]}
                 placeholder="Search for a movie"
                 placeholderTextColor={colors.textLight}
@@ -328,6 +333,7 @@ export default function ShowsScreen() {
                     setSelectedMovie(null);
                     setMovieResults([]);
                     setSearchQuery('');
+                    setTimeout(() => searchInputRef.current?.focus(), 100);
                   }}
                 >
                   <Text style={[styles.changeMovieBtnText, { color: colors.primary, fontFamily: Fonts.medium }]}>Change Movie</Text>
@@ -606,7 +612,6 @@ const styles = StyleSheet.create({
   },
   showPriceInfo: {
     fontSize: 13,
-    marginTop: 4,
   },
   showStatus: {
     alignItems: 'center',

@@ -15,7 +15,7 @@ import { api } from '../../services/api';
 import { useTheme } from '../../context/AuthContext';
 import { Fonts } from '../../constants/Fonts';
 import { Show } from '../../types';
-import { MapPin, Clock, Users } from 'lucide-react-native';
+import { MapPin, Clock, Users, Lock } from 'lucide-react-native';
 
 export default function NowPlayingScreen() {
   const [shows, setShows] = useState<Show[]>([]);
@@ -108,9 +108,12 @@ export default function NowPlayingScreen() {
                   <Text style={[styles.metaText, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>{show.venue.name}</Text>
                 </View>
               )}
-              <Text style={[styles.price, { color: colors.primary, fontFamily: Fonts.semiBold }]}>
-                {show.isPrivate ? '🔒 ' : ''}{show.isFree ? 'Free Entry' : `${show.price}`}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                {show.isPrivate && <Lock size={12} color={colors.primary} strokeWidth={2} style={{ marginRight: 4 }} />}
+                <Text style={[styles.price, { color: colors.primary, fontFamily: Fonts.semiBold }]}>
+                  {show.isFree ? 'Free Entry' : `${show.price}`}
+                </Text>
+              </View>
             </View>
           </TouchableOpacity>
         ))

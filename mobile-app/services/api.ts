@@ -137,6 +137,9 @@ export const api = {
         body: JSON.stringify({ latitude, longitude }),
       });
     },
+    searchHosts(query: string) {
+      return request(`/users/search-hosts?q=${encodeURIComponent(query)}`);
+    },
   },
 
   movies: {
