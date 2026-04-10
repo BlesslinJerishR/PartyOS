@@ -265,7 +265,7 @@ export default function BookingScreen() {
           <View style={styles.privateLabelRow}>
             <Lock size={16} color={colors.primary} strokeWidth={2} />
             <Text style={[styles.privateLabel, { color: colors.text, fontFamily: Fonts.semiBold }]}>
-              Private Show — Password Required
+              Private Show - Password Required
             </Text>
           </View>
           <TextInput
@@ -336,8 +336,8 @@ const styles = StyleSheet.create({
   curvedScreen: {
     width: '100%',
     height: 8,
-    borderBottomLeftRadius: 180,
-    borderBottomRightRadius: 180,
+    borderTopLeftRadius: 180,
+    borderTopRightRadius: 180,
   },
   screenWayText: {
     fontSize: 10,

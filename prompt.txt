@@ -197,4 +197,28 @@ Please fix
 
 X
 
+1. Show the text SCREEN THIS WAY in the middle of the white color screen. now currently it is below that fix
+2. start the count of the canvas from 1 instead of 0 for both the colum and rows
+3. clicking change movie button should clear the selected movie and automatically should input cursor in the Search for a movie input (keyboard should activate)
+4. in the shows screen and coming soon screen there is a lock emoji. use lucide icons instead. don't use emojis anywhere, use only lucide icons. check the app fully and fix other places also
+5. in the coming soon screen (party guest) the movie card poster is not taking the full height . fix. bottom some space is left in the card. check and fix
+6. there is a unecessary white color gap space in the sign in and sign up screen. First it was correct but when the keyboard is active and inactive the remaining space white color is there. check and fix. make it theme black color #1d1e21
+in the party guest screen
+7. in Book tickets screen after selecting a seat i am able to uncheck it fix. click the seat again should uncheck / unselect it. check and fix 
 
+X
+
+1. why there is a difference of size between the Book tickets Pary Guest screen's SCREEN THIS WAY size and party host SCREEN THIS WAY size in canvas. One is small and another is big. keep medium size for both. normalize it 
+2.1 Maps are loading too slow. and it is pixelated make it crystal clear ultra 4k HD
+2.2 and it is not in uber style. make it only black and white color same as uber
+2.3 You are here marker is correct. But nearby a. party venues and b. shows currently running and c.future shows clusters/makers are not rendered. please render. also show the legend for the all 3 items and show tooltip also for each selection
+In Request a movie screen
+3. reuse the same search shows of party host. movie posters should be rendered and after clicked instead of selected: Movie name -> movie poster and title in bottom should be rendered same as party host
+4. make the host id / host name searchable and show suggestions of available hosts
+5. remove the message (optional) field completely. not required
+6. if i press send request button it is throwing error. property message should not exist. check and fix
+7. in My Tickets sceeen in the ticket cards render the movie poster and title also as a card
+
+X
+
+OPTIMIZATIONS

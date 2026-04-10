@@ -672,8 +672,8 @@ const styles = StyleSheet.create({
   curvedScreen: {
     width: '100%',
     height: 36,
-    borderBottomLeftRadius: 180,
-    borderBottomRightRadius: 180,
+    borderTopLeftRadius: 180,
+    borderTopRightRadius: 180,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
