@@ -2,7 +2,9 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  ForbiddenException,
 } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { BookTicketDto } from './dto/book-ticket.dto';
 
@@ -22,6 +24,16 @@ export class TicketsService {
     }
     if (show.status === 'COMPLETED') {
       throw new ConflictException('Show has already ended');
+    }
+
+    if (show.isPrivate && show.password) {
+      if (!dto.password) {
+        throw new ForbiddenException('Password required for this private show');
+      }
+      const isValid = await bcrypt.compare(dto.password, show.password);
+      if (!isValid) {
+        throw new ForbiddenException('Incorrect show password');
+      }
     }
 
     const existingTicket = await this.prisma.ticket.findUnique({

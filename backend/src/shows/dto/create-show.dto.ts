@@ -33,4 +33,12 @@ export class CreateShowDto {
   @IsNumber()
   @IsOptional()
   price?: number;
+
+  @IsBoolean()
+  @IsOptional()
+  isPrivate?: boolean;
+
+  @IsString()
+  @IsOptional()
+  password?: string;
 }

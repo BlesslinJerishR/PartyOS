@@ -1,4 +1,4 @@
-import { IsString } from 'class-validator';
+import { IsString, IsOptional } from 'class-validator';
 
 export class BookTicketDto {
   @IsString()
@@ -6,4 +6,8 @@ export class BookTicketDto {
 
   @IsString()
   seatId: string;
+
+  @IsString()
+  @IsOptional()
+  password?: string;
 }

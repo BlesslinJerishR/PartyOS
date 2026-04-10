@@ -67,6 +67,7 @@ export interface Show {
   startTime: string;
   endTime: string;
   isFree: boolean;
+  isPrivate: boolean;
   price: number;
   status: ShowStatus;
   venue: Venue;
@@ -145,6 +146,7 @@ export interface MapMarker {
   startTime: string;
   endTime: string;
   isFree: boolean;
+  isPrivate: boolean;
   price: number;
   venue: {
     id: string;

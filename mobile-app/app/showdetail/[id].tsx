@@ -100,7 +100,7 @@ export default function ShowDetailScreen() {
             </Text>
           </View>
           <Text style={[styles.priceTag, { color: colors.primary, fontFamily: Fonts.bold }]}>
-            {show.isFree ? 'Free Entry' : `${show.price}`}
+            {show.isPrivate ? '🔒 ' : ''}{show.isFree ? 'Free Entry' : `${show.price}`}
           </Text>
         </View>
 

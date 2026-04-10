@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  TextInput,
   Alert,
   ActivityIndicator,
 } from 'react-native';
@@ -14,7 +15,7 @@ import { useTheme } from '../../context/AuthContext';
 import { Fonts } from '../../constants/Fonts';
 import { Show, Seat, Ticket, SeatType } from '../../types';
 import { SEAT_TYPE_LABELS, SEAT_CAPACITIES, SEAT_COLORS, SEAT_DIMENSIONS } from '../../types';
-import { Check, X } from 'lucide-react-native';
+import { Check, X, Lock } from 'lucide-react-native';
 
 const GRID_CELL_SIZE = 42;
 
@@ -27,6 +28,7 @@ export default function BookingScreen() {
   const [selectedSeatId, setSelectedSeatId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [booking, setBooking] = useState(false);
+  const [showPassword, setShowPassword] = useState('');
   const { colors } = useTheme();
 
   const loadData = useCallback(async () => {
@@ -62,9 +64,14 @@ export default function BookingScreen() {
   const handleBook = async () => {
     if (!selectedSeatId || !id) return;
 
+    if (show?.isPrivate && !showPassword.trim()) {
+      Alert.alert('Password Required', 'Please enter the show password to book.');
+      return;
+    }
+
     setBooking(true);
     try {
-      await api.tickets.book(id, selectedSeatId);
+      await api.tickets.book(id, selectedSeatId, show?.isPrivate ? showPassword : undefined);
       Alert.alert('Success', 'Ticket booked successfully', [
         { text: 'OK', onPress: () => router.back() },
       ]);
@@ -207,8 +214,11 @@ export default function BookingScreen() {
         <Text style={[styles.subtitle, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>Select a seat to book</Text>
       </View>
 
-      <View style={[styles.screen, { backgroundColor: colors.text }]}>
-        <Text style={[styles.screenText, { color: colors.white, fontFamily: Fonts.semiBold }]}>SCREEN</Text>
+      <View style={styles.screenContainer}>
+        <View style={[styles.curvedScreen, { backgroundColor: colors.text }]} />
+        <Text style={[styles.screenWayText, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>
+          Screen this way
+        </Text>
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.gridContainer}>
@@ -247,6 +257,25 @@ export default function BookingScreen() {
           <Text style={[styles.selectionPrice, { color: colors.primary, fontFamily: Fonts.semiBold }]}>
             {show.isFree ? 'Free Entry' : `Price: ${show.price}`}
           </Text>
+        </View>
+      )}
+
+      {show.isPrivate && (
+        <View style={[styles.privateCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
+          <View style={styles.privateLabelRow}>
+            <Lock size={16} color={colors.primary} strokeWidth={2} />
+            <Text style={[styles.privateLabel, { color: colors.text, fontFamily: Fonts.semiBold }]}>
+              Private Show — Password Required
+            </Text>
+          </View>
+          <TextInput
+            style={[styles.passwordInput, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border, fontFamily: Fonts.regular }]}
+            placeholder="Enter show password"
+            placeholderTextColor={colors.textLight}
+            value={showPassword}
+            onChangeText={setShowPassword}
+            secureTextEntry
+          />
         </View>
       )}
 
@@ -298,6 +327,23 @@ const styles = StyleSheet.create({
   screenText: {
     fontSize: 12,
     letterSpacing: 2,
+  },
+  screenContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingHorizontal: 32,
+  },
+  curvedScreen: {
+    width: '100%',
+    height: 8,
+    borderBottomLeftRadius: 180,
+    borderBottomRightRadius: 180,
+  },
+  screenWayText: {
+    fontSize: 10,
+    marginTop: 6,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
   },
   gridContainer: {
     paddingHorizontal: 16,
@@ -355,6 +401,29 @@ const styles = StyleSheet.create({
   },
   bookButtonText: {
     fontSize: 18,
+  },
+  privateCard: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+  },
+  privateLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  privateLabel: {
+    fontSize: 14,
+  },
+  passwordInput: {
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    borderWidth: 1,
   },
   bottomSpacer: {
     height: 40,

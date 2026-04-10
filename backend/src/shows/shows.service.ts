@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { CreateShowDto } from './dto/create-show.dto';
@@ -18,12 +19,27 @@ export class ShowsService {
     @InjectQueue('shows') private readonly showsQueue: Queue,
   ) {}
 
+  private stripPassword<T extends Record<string, any>>(show: T): Omit<T, 'password'> {
+    if (!show) return show;
+    const { password, ...rest } = show;
+    return rest as Omit<T, 'password'>;
+  }
+
+  private stripPasswords<T extends Record<string, any>>(shows: T[]): Omit<T, 'password'>[] {
+    return shows.map((s) => this.stripPassword(s));
+  }
+
   async create(hostId: string, dto: CreateShowDto) {
     const venue = await this.prisma.venue.findUnique({
       where: { id: dto.venueId },
     });
     if (!venue) throw new NotFoundException('Venue not found');
     if (venue.hostId !== hostId) throw new ForbiddenException();
+
+    const hashedPassword =
+      dto.isPrivate && dto.password
+        ? await bcrypt.hash(dto.password, 10)
+        : null;
 
     const show = await this.prisma.show.create({
       data: {
@@ -35,6 +51,8 @@ export class ShowsService {
         endTime: new Date(dto.endTime),
         isFree: dto.isFree ?? false,
         price: dto.price ?? 0,
+        isPrivate: dto.isPrivate ?? false,
+        password: hashedPassword,
       },
       include: {
         venue: {
@@ -64,7 +82,7 @@ export class ShowsService {
     }
 
     await this.redisService.delPattern('shows:*');
-    return show;
+    return this.stripPassword(show);
   }
 
   async findNowPlaying(latitude?: number, longitude?: number) {
@@ -155,7 +173,7 @@ export class ShowsService {
     });
 
     if (!show) throw new NotFoundException('Show not found');
-    return show;
+    return this.stripPassword(show);
   }
 
   async update(id: string, hostId: string, dto: UpdateShowDto) {
@@ -166,17 +184,29 @@ export class ShowsService {
     if (!show) throw new NotFoundException('Show not found');
     if (show.venue.hostId !== hostId) throw new ForbiddenException();
 
+    const updateData: any = {
+      ...dto,
+      startTime: dto.startTime ? new Date(dto.startTime) : undefined,
+      endTime: dto.endTime ? new Date(dto.endTime) : undefined,
+    };
+
+    // Handle password for private shows
+    if (dto.password) {
+      updateData.password = await bcrypt.hash(dto.password, 10);
+    } else {
+      delete updateData.password;
+    }
+    if (dto.isPrivate === false) {
+      updateData.password = null;
+    }
+
     const result = await this.prisma.show.update({
       where: { id },
-      data: {
-        ...dto,
-        startTime: dto.startTime ? new Date(dto.startTime) : undefined,
-        endTime: dto.endTime ? new Date(dto.endTime) : undefined,
-      },
+      data: updateData,
     });
 
     await this.redisService.delPattern('shows:*');
-    return result;
+    return this.stripPassword(result);
   }
 
   async cancel(id: string, hostId: string) {

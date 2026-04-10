@@ -113,6 +113,8 @@ model Show {
   endTime      DateTime
   isFree       Boolean    @default(false)
   price        Float      @default(0)
+  isPrivate    Boolean    @default(false)
+  password     String?
   status       ShowStatus @default(SCHEDULED)
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt

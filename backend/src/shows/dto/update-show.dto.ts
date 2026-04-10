@@ -40,4 +40,12 @@ export class UpdateShowDto {
   @IsEnum(ShowStatus)
   @IsOptional()
   status?: ShowStatus;
+
+  @IsBoolean()
+  @IsOptional()
+  isPrivate?: boolean;
+
+  @IsString()
+  @IsOptional()
+  password?: string;
 }

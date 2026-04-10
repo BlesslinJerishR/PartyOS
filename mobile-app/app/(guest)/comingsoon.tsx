@@ -126,7 +126,7 @@ export default function ComingSoonScreen() {
                 </View>
               )}
               <Text style={[styles.price, { color: colors.primary, fontFamily: Fonts.semiBold }]}>
-                {show.isFree ? 'Free Entry' : `${show.price}`}
+                {show.isPrivate ? '🔒 ' : ''}{show.isFree ? 'Free Entry' : `${show.price}`}
               </Text>
             </View>
           </TouchableOpacity>

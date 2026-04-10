@@ -11,12 +11,14 @@ import {
   RefreshControl,
   Image,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { api } from '../../services/api';
 import { useTheme } from '../../context/AuthContext';
 import { Fonts } from '../../constants/Fonts';
 import { Show, Venue, TMDBMovie, TMDBResponse } from '../../types';
-import { Plus, Search, X, Calendar, Clock } from 'lucide-react-native';
+import { Plus, Search, X, Calendar, Clock, Lock } from 'lucide-react-native';
 
 const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/w200';
 
@@ -29,11 +31,28 @@ export default function ShowsScreen() {
   const [movieResults, setMovieResults] = useState<TMDBMovie[]>([]);
   const [selectedMovie, setSelectedMovie] = useState<TMDBMovie | null>(null);
   const [selectedVenueId, setSelectedVenueId] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [startTime, setStartTime] = useState('');
-  const [endTime, setEndTime] = useState('');
-  const [isFree, setIsFree] = useState(true);
+  const [selectedDate, setSelectedDate] = useState<Date>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    d.setHours(18, 0, 0, 0);
+    return d;
+  });
+  const [selectedStartTime, setSelectedStartTime] = useState<Date>(() => {
+    const d = new Date();
+    d.setHours(18, 0, 0, 0);
+    return d;
+  });
+  const [selectedEndTime, setSelectedEndTime] = useState<Date>(() => {
+    const d = new Date();
+    d.setHours(20, 30, 0, 0);
+    return d;
+  });
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showStartTimePicker, setShowStartTimePicker] = useState(false);
+  const [showEndTimePicker, setShowEndTimePicker] = useState(false);
+  const [showType, setShowType] = useState<'FREE' | 'PAID' | 'PRIVATE'>('FREE');
   const [price, setPrice] = useState('');
+  const [privatePassword, setPrivatePassword] = useState('');
   const [searching, setSearching] = useState(false);
   const { colors } = useTheme();
 
@@ -80,27 +99,52 @@ export default function ShowsScreen() {
   };
 
   const handleCreateShow = async () => {
-    if (!selectedMovie || !selectedVenueId || !startDate || !startTime || !endTime) {
+    if (!selectedMovie || !selectedVenueId) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
-    try {
-      const startDateTime = `${startDate}T${startTime}:00`;
-      const endDateTime = `${startDate}T${endTime}:00`;
+    if (showType === 'PRIVATE' && !privatePassword.trim()) {
+      Alert.alert('Error', 'Please set a password for private show');
+      return;
+    }
 
-      await api.shows.create({
+    // Validate date is not in the past
+    const now = new Date();
+    const startDateTime = new Date(selectedDate);
+    startDateTime.setHours(selectedStartTime.getHours(), selectedStartTime.getMinutes(), 0, 0);
+    const endDateTime = new Date(selectedDate);
+    endDateTime.setHours(selectedEndTime.getHours(), selectedEndTime.getMinutes(), 0, 0);
+
+    if (startDateTime <= now) {
+      Alert.alert('Error', 'Start time cannot be in the past');
+      return;
+    }
+    if (endDateTime <= startDateTime) {
+      Alert.alert('Error', 'End time must be after start time');
+      return;
+    }
+
+    try {
+      const payload: any = {
         venueId: selectedVenueId,
         tmdbMovieId: selectedMovie.id,
         movieTitle: selectedMovie.title,
         moviePoster: selectedMovie.poster_path
           ? `${TMDB_IMAGE_BASE}${selectedMovie.poster_path}`
           : null,
-        startTime: startDateTime,
-        endTime: endDateTime,
-        isFree,
-        price: isFree ? 0 : parseFloat(price) || 0,
-      });
+        startTime: startDateTime.toISOString(),
+        endTime: endDateTime.toISOString(),
+        isFree: showType === 'FREE',
+        price: showType === 'PAID' || showType === 'PRIVATE' ? parseFloat(price) || 0 : 0,
+        isPrivate: showType === 'PRIVATE',
+      };
+
+      if (showType === 'PRIVATE') {
+        payload.password = privatePassword;
+      }
+
+      await api.shows.create(payload);
 
       setShowCreate(false);
       resetForm();
@@ -133,11 +177,19 @@ export default function ShowsScreen() {
     setMovieResults([]);
     setSelectedMovie(null);
     setSelectedVenueId('');
-    setStartDate('');
-    setStartTime('');
-    setEndTime('');
-    setIsFree(true);
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(18, 0, 0, 0);
+    setSelectedDate(tomorrow);
+    const defaultStart = new Date();
+    defaultStart.setHours(18, 0, 0, 0);
+    setSelectedStartTime(defaultStart);
+    const defaultEnd = new Date();
+    defaultEnd.setHours(20, 30, 0, 0);
+    setSelectedEndTime(defaultEnd);
+    setShowType('FREE');
     setPrice('');
+    setPrivatePassword('');
   };
 
   return (
@@ -184,7 +236,7 @@ export default function ShowsScreen() {
                 </Text>
               </View>
               <Text style={[styles.showPriceInfo, { color: colors.primary, fontFamily: Fonts.medium }]}>
-                {show.isFree ? 'Free Entry' : `Price: ${show.price}`}
+                {show.isPrivate ? '🔒 Private' : ''}{show.isPrivate && !show.isFree ? ' · ' : ''}{show.isFree && !show.isPrivate ? 'Free Entry' : !show.isFree ? `₹${show.price}` : show.isPrivate && show.isFree ? ' Free Entry' : ''}
               </Text>
             </View>
             <View style={styles.showStatus}>
@@ -261,9 +313,25 @@ export default function ShowsScreen() {
 
             {selectedMovie && (
               <View style={[styles.selectedMovieCard, { backgroundColor: colors.surface, borderColor: colors.primary }]}>
-                <Text style={[styles.selectedMovieTitle, { color: colors.primary, fontFamily: Fonts.semiBold }]}>
-                  Selected: {selectedMovie.title}
+                {selectedMovie.poster_path && (
+                  <Image
+                    source={{ uri: `${TMDB_IMAGE_BASE}${selectedMovie.poster_path}` }}
+                    style={styles.selectedMoviePoster}
+                  />
+                )}
+                <Text style={[styles.selectedMovieTitle, { color: colors.text, fontFamily: Fonts.semiBold }]} numberOfLines={2}>
+                  {selectedMovie.title}
                 </Text>
+                <TouchableOpacity
+                  style={[styles.changeMovieBtn, { borderColor: colors.border }]}
+                  onPress={() => {
+                    setSelectedMovie(null);
+                    setMovieResults([]);
+                    setSearchQuery('');
+                  }}
+                >
+                  <Text style={[styles.changeMovieBtnText, { color: colors.primary, fontFamily: Fonts.medium }]}>Change Movie</Text>
+                </TouchableOpacity>
               </View>
             )}
 
@@ -319,63 +387,159 @@ export default function ShowsScreen() {
               ))}
             </ScrollView>
 
-            <Text style={[styles.fieldLabel, { color: colors.text, fontFamily: Fonts.semiBold }]}>Date (YYYY MM DD)</Text>
-            <TextInput
-              style={[styles.modalInput, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border, fontFamily: Fonts.regular }]}
-              placeholder="2026 04 15"
-              placeholderTextColor={colors.textLight}
-              value={startDate}
-              onChangeText={setStartDate}
-            />
+            <Text style={[styles.fieldLabel, { color: colors.text, fontFamily: Fonts.semiBold }]}>Date</Text>
+            <TouchableOpacity
+              style={[styles.pickerButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              onPress={() => setShowDatePicker(true)}
+            >
+              <Calendar size={18} color={colors.primary} strokeWidth={1.8} />
+              <Text style={[styles.pickerButtonText, { color: colors.text, fontFamily: Fonts.regular }]}>
+                {selectedDate.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'long', day: 'numeric' })}
+              </Text>
+            </TouchableOpacity>
+            {showDatePicker && (
+              <DateTimePicker
+                value={selectedDate}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                minimumDate={new Date()}
+                onChange={(event: DateTimePickerEvent, date?: Date) => {
+                  if (Platform.OS === 'android') setShowDatePicker(false);
+                  if (event.type === 'dismissed') { setShowDatePicker(false); return; }
+                  if (date) setSelectedDate(date);
+                }}
+              />
+            )}
+            {Platform.OS === 'ios' && showDatePicker && (
+              <TouchableOpacity
+                style={[styles.pickerDoneBtn, { backgroundColor: colors.primary }]}
+                onPress={() => setShowDatePicker(false)}
+              >
+                <Text style={[styles.pickerDoneBtnText, { color: colors.white, fontFamily: Fonts.semiBold }]}>Done</Text>
+              </TouchableOpacity>
+            )}
 
             <View style={styles.rowInputs}>
               <View style={styles.halfInput}>
                 <Text style={[styles.fieldLabel, { color: colors.text, fontFamily: Fonts.semiBold }]}>Start Time</Text>
-                <TextInput
-                  style={[styles.modalInput, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border, fontFamily: Fonts.regular }]}
-                  placeholder="18:00"
-                  placeholderTextColor={colors.textLight}
-                  value={startTime}
-                  onChangeText={setStartTime}
-                />
+                <TouchableOpacity
+                  style={[styles.pickerButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                  onPress={() => setShowStartTimePicker(true)}
+                >
+                  <Clock size={18} color={colors.primary} strokeWidth={1.8} />
+                  <Text style={[styles.pickerButtonText, { color: colors.text, fontFamily: Fonts.regular }]}>
+                    {selectedStartTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </Text>
+                </TouchableOpacity>
+                {showStartTimePicker && (
+                  <DateTimePicker
+                    value={selectedStartTime}
+                    mode="time"
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    onChange={(event: DateTimePickerEvent, date?: Date) => {
+                      if (Platform.OS === 'android') setShowStartTimePicker(false);
+                      if (event.type === 'dismissed') { setShowStartTimePicker(false); return; }
+                      if (date) {
+                        const now = new Date();
+                        const isToday = selectedDate.toDateString() === now.toDateString();
+                        if (isToday && date.getHours() * 60 + date.getMinutes() < now.getHours() * 60 + now.getMinutes()) {
+                          Alert.alert('Invalid Time', 'Start time cannot be in the past');
+                          return;
+                        }
+                        setSelectedStartTime(date);
+                      }
+                    }}
+                  />
+                )}
+                {Platform.OS === 'ios' && showStartTimePicker && (
+                  <TouchableOpacity
+                    style={[styles.pickerDoneBtn, { backgroundColor: colors.primary }]}
+                    onPress={() => setShowStartTimePicker(false)}
+                  >
+                    <Text style={[styles.pickerDoneBtnText, { color: colors.white, fontFamily: Fonts.semiBold }]}>Done</Text>
+                  </TouchableOpacity>
+                )}
               </View>
               <View style={styles.halfInput}>
                 <Text style={[styles.fieldLabel, { color: colors.text, fontFamily: Fonts.semiBold }]}>End Time</Text>
-                <TextInput
-                  style={[styles.modalInput, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border, fontFamily: Fonts.regular }]}
-                  placeholder="20:30"
-                  placeholderTextColor={colors.textLight}
-                  value={endTime}
-                  onChangeText={setEndTime}
-                />
+                <TouchableOpacity
+                  style={[styles.pickerButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                  onPress={() => setShowEndTimePicker(true)}
+                >
+                  <Clock size={18} color={colors.primary} strokeWidth={1.8} />
+                  <Text style={[styles.pickerButtonText, { color: colors.text, fontFamily: Fonts.regular }]}>
+                    {selectedEndTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </Text>
+                </TouchableOpacity>
+                {showEndTimePicker && (
+                  <DateTimePicker
+                    value={selectedEndTime}
+                    mode="time"
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    onChange={(event: DateTimePickerEvent, date?: Date) => {
+                      if (Platform.OS === 'android') setShowEndTimePicker(false);
+                      if (event.type === 'dismissed') { setShowEndTimePicker(false); return; }
+                      if (date) setSelectedEndTime(date);
+                    }}
+                  />
+                )}
+                {Platform.OS === 'ios' && showEndTimePicker && (
+                  <TouchableOpacity
+                    style={[styles.pickerDoneBtn, { backgroundColor: colors.primary }]}
+                    onPress={() => setShowEndTimePicker(false)}
+                  >
+                    <Text style={[styles.pickerDoneBtnText, { color: colors.white, fontFamily: Fonts.semiBold }]}>Done</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
 
-            <Text style={[styles.fieldLabel, { color: colors.text, fontFamily: Fonts.semiBold }]}>Pricing</Text>
+            <Text style={[styles.fieldLabel, { color: colors.text, fontFamily: Fonts.semiBold }]}>Show Type</Text>
             <View style={styles.pricingRow}>
               <TouchableOpacity
-                style={[styles.pricingOption, { borderColor: colors.border }, isFree && styles.pricingActive, isFree && { backgroundColor: colors.primary, borderColor: colors.primary }]}
-                onPress={() => setIsFree(true)}
+                style={[styles.pricingOption, { borderColor: colors.border }, showType === 'FREE' && styles.pricingActive, showType === 'FREE' && { backgroundColor: colors.primary, borderColor: colors.primary }]}
+                onPress={() => setShowType('FREE')}
               >
-                <Text style={[styles.pricingText, { color: colors.text, fontFamily: Fonts.semiBold }, isFree && styles.pricingTextActive, isFree && { color: colors.white }]}>Free</Text>
+                <Text style={[styles.pricingText, { color: colors.text, fontFamily: Fonts.semiBold }, showType === 'FREE' && styles.pricingTextActive, showType === 'FREE' && { color: colors.white }]}>Free</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.pricingOption, { borderColor: colors.border }, !isFree && styles.pricingActive, !isFree && { backgroundColor: colors.primary, borderColor: colors.primary }]}
-                onPress={() => setIsFree(false)}
+                style={[styles.pricingOption, { borderColor: colors.border }, showType === 'PAID' && styles.pricingActive, showType === 'PAID' && { backgroundColor: colors.primary, borderColor: colors.primary }]}
+                onPress={() => setShowType('PAID')}
               >
-                <Text style={[styles.pricingText, { color: colors.text, fontFamily: Fonts.semiBold }, !isFree && styles.pricingTextActive, !isFree && { color: colors.white }]}>Paid</Text>
+                <Text style={[styles.pricingText, { color: colors.text, fontFamily: Fonts.semiBold }, showType === 'PAID' && styles.pricingTextActive, showType === 'PAID' && { color: colors.white }]}>Paid</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.pricingOption, { borderColor: colors.border }, showType === 'PRIVATE' && styles.pricingActive, showType === 'PRIVATE' && { backgroundColor: colors.primary, borderColor: colors.primary }]}
+                onPress={() => setShowType('PRIVATE')}
+              >
+                <Lock size={14} color={showType === 'PRIVATE' ? colors.white : colors.text} strokeWidth={2} style={{ marginRight: 4 }} />
+                <Text style={[styles.pricingText, { color: colors.text, fontFamily: Fonts.semiBold }, showType === 'PRIVATE' && styles.pricingTextActive, showType === 'PRIVATE' && { color: colors.white }]}>Private</Text>
               </TouchableOpacity>
             </View>
 
-            {!isFree && (
+            {(showType === 'PAID' || showType === 'PRIVATE') && (
               <TextInput
                 style={[styles.modalInput, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border, fontFamily: Fonts.regular }]}
-                placeholder="Price per ticket"
+                placeholder="Price per ticket (0 for free)"
                 placeholderTextColor={colors.textLight}
                 value={price}
                 onChangeText={setPrice}
                 keyboardType="numeric"
               />
+            )}
+
+            {showType === 'PRIVATE' && (
+              <View>
+                <Text style={[styles.fieldLabel, { color: colors.text, fontFamily: Fonts.semiBold }]}>Show Password</Text>
+                <TextInput
+                  style={[styles.modalInput, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border, fontFamily: Fonts.regular }]}
+                  placeholder="Set password for guests to enter"
+                  placeholderTextColor={colors.textLight}
+                  value={privatePassword}
+                  onChangeText={setPrivatePassword}
+                  secureTextEntry
+                />
+              </View>
             )}
 
             <TouchableOpacity style={[styles.modalButton, { backgroundColor: colors.primary }]} onPress={handleCreateShow}>
@@ -523,12 +687,30 @@ const styles = StyleSheet.create({
   },
   selectedMovieCard: {
     borderRadius: 12,
-    padding: 12,
+    padding: 16,
     marginBottom: 16,
     borderWidth: 1,
+    alignItems: 'center',
+  },
+  selectedMoviePoster: {
+    width: 100,
+    height: 150,
+    borderRadius: 10,
+    marginBottom: 10,
   },
   selectedMovieTitle: {
-    fontSize: 14,
+    fontSize: 15,
+    textAlign: 'center',
+  },
+  changeMovieBtn: {
+    marginTop: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  changeMovieBtnText: {
+    fontSize: 13,
   },
   movieList: {
     marginBottom: 16,
@@ -586,17 +768,42 @@ const styles = StyleSheet.create({
   },
   pricingOption: {
     flex: 1,
+    flexDirection: 'row',
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   pricingActive: {
   },
   pricingText: {
-    fontSize: 14,
+    fontSize: 13,
   },
   pricingTextActive: {
+  },
+  pickerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  pickerButtonText: {
+    fontSize: 15,
+  },
+  pickerDoneBtn: {
+    alignSelf: 'flex-end',
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  pickerDoneBtnText: {
+    fontSize: 14,
   },
   modalButton: {
     paddingVertical: 14,

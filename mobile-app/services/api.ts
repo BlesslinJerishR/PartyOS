@@ -224,10 +224,12 @@ export const api = {
   },
 
   tickets: {
-    book(showId: string, seatId: string) {
+    book(showId: string, seatId: string, password?: string) {
+      const body: any = { showId, seatId };
+      if (password) body.password = password;
       return request('/tickets', {
         method: 'POST',
-        body: JSON.stringify({ showId, seatId }),
+        body: JSON.stringify(body),
       });
     },
     getMy() {

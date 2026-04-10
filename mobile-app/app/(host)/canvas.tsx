@@ -370,16 +370,19 @@ export default function CanvasScreen() {
       {selectedVenue && (
         <>
           <View style={styles.screenIndicator}>
-            <View style={[styles.screenBar, { backgroundColor: colors.text }]}>
+            <View style={[styles.curvedScreen, { backgroundColor: colors.text }]}>
               {selectedVenue.screenType === 'TV_4K' ? (
-                <Monitor size={20} color={colors.white} strokeWidth={1.8} />
+                <Monitor size={16} color={colors.white} strokeWidth={1.8} />
               ) : (
-                <Projector size={20} color={colors.white} strokeWidth={1.8} />
+                <Projector size={16} color={colors.white} strokeWidth={1.8} />
               )}
-              <Text style={[styles.screenText, { color: colors.white, fontFamily: Fonts.semiBold }]}>
+              <Text style={[styles.screenTypeLabel, { color: colors.white, fontFamily: Fonts.semiBold }]}>
                 {selectedVenue.screenType === 'TV_4K' ? '4K TV' : 'Projector'}
               </Text>
             </View>
+            <Text style={[styles.screenWayText, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>
+              Screen this way
+            </Text>
           </View>
 
           <View style={styles.canvasContainer}>
@@ -662,19 +665,28 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   screenIndicator: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     marginBottom: 16,
+    alignItems: 'center',
   },
-  screenBar: {
+  curvedScreen: {
+    width: '100%',
+    height: 36,
+    borderBottomLeftRadius: 180,
+    borderBottomRightRadius: 180,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
-    paddingVertical: 10,
-    gap: 8,
+    gap: 6,
   },
-  screenText: {
-    fontSize: 14,
+  screenTypeLabel: {
+    fontSize: 12,
+  },
+  screenWayText: {
+    fontSize: 11,
+    marginTop: 6,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   canvasContainer: {
     paddingHorizontal: 20,
