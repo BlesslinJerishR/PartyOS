@@ -59,6 +59,13 @@ export default function ShowDetailScreen() {
     loadData();
   }, [loadData]);
 
+  const isBookable = show ? (show.status === 'SCHEDULED' || show.status === 'NOW_PLAYING') : false;
+  const averageRating = useMemo(() =>
+    reviews.length > 0
+      ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
+      : null,
+    [reviews]);
+
   if (loading || !show) {
     return (
       <View style={[styles.center, { backgroundColor: colors.surface }]}>
@@ -66,13 +73,6 @@ export default function ShowDetailScreen() {
       </View>
     );
   }
-
-  const isBookable = show.status === 'SCHEDULED' || show.status === 'NOW_PLAYING';
-  const averageRating = useMemo(() =>
-    reviews.length > 0
-      ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
-      : null,
-    [reviews]);
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.surface }]}>

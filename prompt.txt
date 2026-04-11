@@ -324,3 +324,12 @@ three scenarios of eas build config
 1. local development client apk
 2. local apk
 3. playstore AAB
+
+X
+
+In party guest
+In demo mode
+1. in the map only Now playing is showing but Upcoming and venues cluster/marker is not rendering check and fix but in the coming soon there are three movies present
+2. If i click any on of the cards playing now. its throwing error. check and fix 
+
+LOGS

@@ -190,36 +190,47 @@ export default function MapScreen() {
     var venueData = ${venuesJson};
     var nowPlaying = ${nowPlayingJson};
     var upcoming = ${upcomingJson};
-    var showVenueIds = new Set();
     var bounds = [[${userLat}, ${userLng}]];
 
-    nowPlaying.forEach(function(s) { if (s.venue) showVenueIds.add(s.venue.id); });
-    upcoming.forEach(function(s) { if (s.venue) showVenueIds.add(s.venue.id); });
+    // Track used positions to offset overlapping markers
+    var usedPositions = {};
+    function adjustPos(lat, lng) {
+      var key = Math.round(lat * 10000) + ',' + Math.round(lng * 10000);
+      if (!usedPositions[key]) { usedPositions[key] = 0; }
+      var count = usedPositions[key]++;
+      if (count === 0) return [lat, lng];
+      var angle = count * 2.094;
+      var dist = 0.0015 * count;
+      return [lat + Math.cos(angle) * dist, lng + Math.sin(angle) * dist];
+    }
 
+    // Always show venue markers
     venueData.forEach(function(v) {
-      if (showVenueIds.has(v.id)) return;
-      bounds.push([v.latitude, v.longitude]);
-      L.marker([v.latitude, v.longitude], { icon: venueIcon() })
+      var pos = adjustPos(v.latitude, v.longitude);
+      bounds.push(pos);
+      L.marker(pos, { icon: venueIcon(), zIndexOffset: 100 })
         .addTo(map)
         .bindPopup('<div class="marker-popup"><h3>' + v.name + '</h3><p>' + (v.address || '') + '</p><span class="badge badge-venue">Venue</span></div>');
     });
 
     nowPlaying.forEach(function(s) {
       if (!s.venue) return;
-      bounds.push([s.venue.latitude, s.venue.longitude]);
+      var pos = adjustPos(s.venue.latitude, s.venue.longitude);
+      bounds.push(pos);
       var t1 = new Date(s.startTime).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
       var t2 = new Date(s.endTime).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-      L.marker([s.venue.latitude, s.venue.longitude], { icon: nowPlayingIcon() })
+      L.marker(pos, { icon: nowPlayingIcon(), zIndexOffset: 300 })
         .addTo(map)
         .bindPopup('<div class="marker-popup"><h3>' + s.movieTitle + '</h3><p>' + s.venue.name + '</p><p>' + t1 + ' \\u2013 ' + t2 + '</p><p>' + (s.isFree ? 'Free Entry' : '\\u20b9' + s.price) + '</p><span class="badge badge-live">LIVE NOW</span></div>');
     });
 
     upcoming.forEach(function(s) {
       if (!s.venue) return;
-      bounds.push([s.venue.latitude, s.venue.longitude]);
+      var pos = adjustPos(s.venue.latitude, s.venue.longitude);
+      bounds.push(pos);
       var d = new Date(s.startTime).toLocaleDateString();
       var t = new Date(s.startTime).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-      L.marker([s.venue.latitude, s.venue.longitude], { icon: upcomingIcon() })
+      L.marker(pos, { icon: upcomingIcon(), zIndexOffset: 200 })
         .addTo(map)
         .bindPopup('<div class="marker-popup"><h3>' + s.movieTitle + '</h3><p>' + s.venue.name + '</p><p>' + d + ' at ' + t + '</p><p>' + (s.isFree ? 'Free Entry' : '\\u20b9' + s.price) + '</p><span class="badge badge-upcoming">UPCOMING</span></div>');
     });
