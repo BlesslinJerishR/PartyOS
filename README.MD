@@ -983,5 +983,5 @@ See the [LICENSE](LICENSE) file for the full license text.
 ---
 
 <p align="center">
-  Built in a party - <span style="color: #FF004F;">PartyOS</span>
+  Built in a Party<span style="color: #FF004F;">OS</span>
 </p>

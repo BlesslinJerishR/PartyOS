@@ -72,7 +72,7 @@ export default function TicketsScreen() {
       default:
         return colors.textSecondary;
     }
-  };
+  }, [colors]);
 
   const active = useMemo(() => tickets.filter(
     (t) => t.status === 'BOOKED' || t.status === 'CHECKED_IN',

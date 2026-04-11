@@ -54,7 +54,7 @@ export default function RequestsScreen() {
     } catch (error: any) {
       Alert.alert('Error', error.message);
     }
-  };
+  }, [loadRequests]);
 
   const pending = useMemo(() => requests.filter((r) => r.status === 'PENDING'), [requests]);
   const handled = useMemo(() => requests.filter((r) => r.status !== 'PENDING'), [requests]);

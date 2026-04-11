@@ -123,7 +123,10 @@ async function request<T>(
       }
 
       // Handle 401 Unauthorized - trigger automatic logout
-      if (response.status === 401) {
+      // Skip session-expiry handling for auth endpoints so the actual
+      // backend error (e.g. "Invalid credentials") is shown to the user.
+      const isAuthEndpoint = endpoint.startsWith('/auth/');
+      if (response.status === 401 && !isAuthEndpoint) {
         clearCache();
         onUnauthorized?.();
         throw new Error('Session expired. Please log in again.');

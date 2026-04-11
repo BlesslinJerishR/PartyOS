@@ -70,7 +70,7 @@ export default function ProfileScreen() {
     } finally {
       setSearching(false);
     }
-  };
+  }, [searchQuery]);
 
   const searchHosts = async (query: string) => {
     setHostQuery(query);
