@@ -244,3 +244,24 @@ You are an expirenced cyber security engineer and ethical hacker. Analyze my cod
 Identify edge cases and fix those edge cases too. make it robust and seamless. Implement end to end. make no mistakes. Do both the frontend and backend end to end. Improvise as much as needed and possible. Improvise accordingly. It should be an actual production ready enterprise grade level application. make no mistakes.
 
 write the final report in docs/cybersecurity.MD file
+
+# LANDING PAGE
+
+Build our product PRODUCT_NAME_OS landing page. Analyze the project completely. I have attached the reference landing page for you to check. Keep it in single index.html file using only HTML,CSS,JS. I need the same structure and Ui/UX (Important) and layout of the attached landing page but change the contents according to our project
+
+Follow the same pricing plans tiers and from the landing pages
+
+Don't use emojis or hiphen or underscore , - ,  _ anywhere in the frontend. Use only Lucide icons (Important).
+
+Only use Plus Jakarta Sans for the Hero Landing slogan text section and hero texts.
+
+Use inconsolata fonts everywhere for the whole application
+Keep Sun and Moon lucide icons switch in navbar for dark and light theme switch
+
+Dark Mode as default : 
+Black Background + White color for text content + Hero Color
+Light Mode :
+White Background + Black color for text content + Hero Color
+
+Black Background : #1D1E21
+Hero Color : #FF004F
