@@ -10,14 +10,16 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth, useTheme } from '../../context/AuthContext';
 import { Fonts } from '../../constants/Fonts';
-import { LogIn } from 'lucide-react-native';
+import { LogIn, Play } from 'lucide-react-native';
+import { DEMO_USERNAME, DEMO_PASSWORD } from '../../services/demo';
 
 export default function LoginScreen() {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const params = useLocalSearchParams<{ demo?: string }>();
+  const [username, setUsername] = useState(params.demo === '1' ? DEMO_USERNAME : '');
+  const [password, setPassword] = useState(params.demo === '1' ? DEMO_PASSWORD : '');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const { colors } = useTheme();
@@ -103,6 +105,19 @@ export default function LoginScreen() {
             <Text style={{ color: colors.primary, fontFamily: Fonts.semiBold }}>Sign Up</Text>
           </Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => {
+            setUsername(DEMO_USERNAME);
+            setPassword(DEMO_PASSWORD);
+          }}
+          style={[styles.demoButton, { borderColor: colors.primary }]}
+        >
+          <Play size={16} color={colors.primary} strokeWidth={2} />
+          <Text style={[styles.demoButtonText, { color: colors.primary, fontFamily: Fonts.semiBold }]}>
+            Try Free Demo
+          </Text>
+        </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
   );
@@ -169,6 +184,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   linkText: {
+    fontSize: 15,
+  },
+  demoButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 20,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+  },
+  demoButtonText: {
     fontSize: 15,
   },
 });

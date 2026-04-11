@@ -26,10 +26,13 @@ export default function GuestLayout() {
         },
         headerStyle: {
           backgroundColor: colors.background,
+          height: 36 + insets.top,
         },
         headerTitleStyle: {
           fontFamily: Fonts.bold,
           color: colors.text,
+          fontSize: 17,
+          marginTop: -25,
         },
       }}
     >
@@ -37,6 +40,7 @@ export default function GuestLayout() {
         name="nowplaying"
         options={{
           title: 'Now Playing',
+          headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <Play size={size} color={color} strokeWidth={1.8} />
           ),
@@ -46,6 +50,7 @@ export default function GuestLayout() {
         name="comingsoon"
         options={{
           title: 'Coming Soon',
+          headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <Clock size={size} color={color} strokeWidth={1.8} />
           ),
@@ -64,6 +69,7 @@ export default function GuestLayout() {
         name="tickets"
         options={{
           title: 'Tickets',
+          headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <Ticket size={size} color={color} strokeWidth={1.8} />
           ),

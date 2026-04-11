@@ -186,6 +186,28 @@
       opacity: 0.9;
     }
 
+    .nav-demo-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 18px;
+      color: var(--accent-primary);
+      border: 1px dashed var(--accent-primary);
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: var(--font-body);
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+
+    .nav-demo-btn:hover {
+      background: var(--accent-primary);
+      color: #ffffff;
+      border-style: solid;
+      transform: translateY(-1px);
+    }
+
     /* Mobile hamburger */
     .hamburger {
       display: none;
@@ -396,6 +418,32 @@
       border-color: var(--accent-primary);
       color: var(--accent-primary);
       transform: translateY(-2px);
+    }
+
+    .cta-demo {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 32px;
+      background: transparent;
+      color: var(--accent-primary);
+      border: 2px dashed var(--accent-primary);
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 700;
+      font-family: var(--font-body);
+      transition: all 0.2s;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta-demo:hover {
+      background: var(--accent-primary);
+      color: #ffffff;
+      border-style: solid;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px var(--accent-glow);
     }
 
     /* ===== SCREENSHOT / MOCKUP ===== */
@@ -1719,6 +1767,7 @@
       .nav-links { display: none; }
       .hamburger { display: flex; }
       .nav-cta { display: none; }
+      .nav-demo-btn { display: none; }
       .navbar { padding: 12px 20px; }
     }
 
@@ -1927,6 +1976,10 @@
         <i data-lucide="moon" class="theme-icon-dark" style="width:16px;height:16px;"></i>
         <i data-lucide="sun" class="theme-icon-light" style="width:16px;height:16px;display:none;"></i>
       </button>
+      <a href="#demo" class="nav-demo-btn" onclick="openFreeDemo(event)">
+        <i data-lucide="play" style="width:14px;height:14px;"></i>
+        Demo
+      </a>
       <a href="https://github.com/BlesslinJerishR/PartyOS" target="_blank" class="nav-cta">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
         GitHub
@@ -1952,6 +2005,7 @@
     <a href="#pricing" class="mobile-nav-link">Pricing</a>
     <a href="#faq" class="mobile-nav-link">FAQ</a>
     <a href="https://github.com/BlesslinJerishR/PartyOS" target="_blank" class="mobile-nav-link" style="color:var(--accent-primary);">GitHub</a>
+    <a href="#demo" class="mobile-nav-link" style="color:var(--accent-primary);border:1px dashed var(--accent-primary);border-radius:8px;padding:8px 16px;text-align:center;" onclick="openFreeDemo(event)">&#9654; Free Demo</a>
   </div>
 
   <!-- ===== HERO ===== -->
@@ -1981,6 +2035,10 @@
           <i data-lucide="star" style="width:14px;height:14px;"></i>
           <span id="starCountHero">Stars</span>
         </span>
+      </a>
+      <a href="#demo" class="cta-demo" onclick="openFreeDemo(event)">
+        <i data-lucide="play" style="width:16px;height:16px;"></i>
+        Free Demo
       </a>
       <a href="#features" class="cta-secondary">
         Explore Features
@@ -2909,6 +2967,24 @@
   <script>
     // Initialize Lucide icons
     lucide.createIcons();
+
+    // ===== Free Demo Handler =====
+    function openFreeDemo(e) {
+      e.preventDefault();
+      // Deep link into the Expo app with demo flag
+      // For web builds, navigate to the app URL with demo query param
+      var appUrl = window.location.origin + '/app';
+      // Try Expo deep link first, fall back to alert with instructions
+      var expoLink = 'exp://localhost:8081/--/(auth)/login?demo=1';
+      var confirmed = confirm(
+        'Free Demo Mode\\n\\nCredentials will be auto-filled:\\n' +
+        'Username: blessl.in\\nPassword: blessl.in\\n\\n' +
+        'Open the mobile app and tap "Try Free Demo" on the login screen, or press OK to try opening the app.'
+      );
+      if (confirmed) {
+        window.location.href = expoLink;
+      }
+    }
 
     // ===== Theme Toggle =====
     const themeToggle = document.getElementById('themeToggle');

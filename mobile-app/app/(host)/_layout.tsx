@@ -32,10 +32,13 @@ export default function HostLayout() {
         },
         headerStyle: {
           backgroundColor: colors.background,
+          height: 36 + insets.top,
         },
         headerTitleStyle: {
           fontFamily: Fonts.bold,
           color: colors.text,
+          fontSize: 17,
+          marginTop: -25
         },
       }}
     >
@@ -43,6 +46,7 @@ export default function HostLayout() {
         name="dashboard"
         options={{
           title: 'Dashboard',
+          headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <LayoutDashboard size={size} color={color} strokeWidth={1.8} />
           ),
@@ -79,6 +83,7 @@ export default function HostLayout() {
         name="requests"
         options={{
           title: 'Requests',
+          headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <MessageSquare size={size} color={color} strokeWidth={1.8} />
           ),

@@ -4,6 +4,7 @@ import { api, setOnUnauthorized } from '../services/api';
 import { storage } from '../services/storage';
 import { AuthResponse, UserRole } from '../types';
 import { DarkTheme, LightTheme, ThemeColors } from '../constants/Colors';
+import { isDemoMode, setDemoMode, DEMO_USERNAME, DEMO_PASSWORD } from '../services/demo';
 
 const THEME_KEY = 'partyos_theme';
 
@@ -25,6 +26,7 @@ interface AuthContextValue extends AuthState, ThemeState {
   logout: () => Promise<void>;
   setRole: (role: UserRole) => Promise<void>;
   toggleTheme: () => void;
+  isDemo: boolean;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -67,6 +69,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const user = await storage.getUser();
 
     if (token && user) {
+      // Re-enable demo mode if the stored token is the demo token
+      if (token === 'demo-token-partyos') {
+        setDemoMode(true);
+      }
       setState({
         isLoading: false,
         isAuthenticated: true,
@@ -94,6 +100,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = useCallback(async (username: string, password: string) => {
+    // Enable demo mode when demo credentials are used
+    if (username === DEMO_USERNAME && password === DEMO_PASSWORD) {
+      setDemoMode(true);
+    }
     const response = (await api.auth.login(username, password)) as AuthResponse;
     await storage.setToken(response.accessToken);
     await storage.setUser(response.user);
@@ -118,6 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
+    setDemoMode(false);
     await storage.clearAll();
     api.clearCache();
     setState({
@@ -142,6 +153,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     logout,
     setRole,
     toggleTheme,
+    isDemo: isDemoMode(),
   }), [state, themeState, login, signup, logout, setRole, toggleTheme]);
 
   return (

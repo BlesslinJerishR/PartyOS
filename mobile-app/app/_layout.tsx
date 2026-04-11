@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
+import { View, Text, StyleSheet } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -19,18 +20,26 @@ import {
   Roboto_500Medium,
   Roboto_700Bold,
 } from '@expo-google-fonts/roboto';
-import { AuthProvider, useTheme } from '../context/AuthContext';
+import { AuthProvider, useAuth, useTheme } from '../context/AuthContext';
+import { Fonts } from '../constants/Fonts';
 
 export { ErrorBoundary } from 'expo-router';
 
 SplashScreen.preventAutoHideAsync();
 
 function InnerLayout() {
-  const { colors, isDark } = useTheme();
+  const { colors, isDark, isDemo } = useAuth();
 
   return (
     <>
       <StatusBar style={isDark ? 'light' : 'dark'} />
+      {isDemo && (
+        <View style={[demoBannerStyles.banner, { backgroundColor: colors.primary }]}>
+          <Text style={[demoBannerStyles.text, { fontFamily: Fonts.semiBold }]}>
+            DEMO MODE — Read Only
+          </Text>
+        </View>
+      )}
       <Stack
         screenOptions={{
           headerShown: false,
@@ -82,3 +91,16 @@ export default function RootLayout() {
     </SafeAreaProvider>
   );
 }
+
+const demoBannerStyles = StyleSheet.create({
+  banner: {
+    paddingVertical: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  text: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    letterSpacing: 1,
+  },
+});

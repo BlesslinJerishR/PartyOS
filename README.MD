@@ -688,6 +688,32 @@ cd mobile-app
 eas build --platform all
 ```
 
+### EAS Local Builds
+
+All EAS local builds run on your machine without EAS cloud. Requires Android SDK and Java 17+.
+
+```bash
+cd mobile-app
+```
+
+**1. Local Development Client APK** (includes dev tools, connects to local dev server)
+
+```bash
+eas build --profile development --platform android --local
+```
+
+**2. Local Preview APK** (standalone release APK for testing)
+
+```bash
+eas build --profile preview --platform android --local
+```
+
+**3. Play Store AAB** (production Android App Bundle for Google Play)
+
+```bash
+eas build --profile production --platform android --local
+```
+
 ---
 
 ## API Reference

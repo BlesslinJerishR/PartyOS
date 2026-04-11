@@ -1,6 +1,7 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { storage } from './storage';
+import { isDemoMode, demoApi } from './demo';
 
 // ── Auth event listener for 401 handling ──────────────────────────
 type AuthEventListener = () => void;
@@ -96,6 +97,13 @@ async function request<T>(
   endpoint: string,
   options: RequestInit = {},
 ): Promise<T> {
+  // Safety net: in demo mode ALL calls should go through the demo proxy.
+  // If a call somehow reaches here, return an empty object instead of
+  // hitting the real (possibly unavailable) backend.
+  if (isDemoMode()) {
+    return {} as T;
+  }
+
   const hasBody = !!options.body;
   const headers = await getHeaders(hasBody);
   let lastError: Error = new Error('Request failed');
@@ -165,7 +173,7 @@ async function request<T>(
   throw lastError;
 }
 
-export const api = {
+export const _realApi = {
   clearCache,
 
   auth: {
@@ -461,3 +469,27 @@ export const api = {
     },
   },
 };
+
+// ── Demo mode proxy ───────────────────────────────────────────────
+// When demo mode is active, all API calls are routed to the mock API.
+// This uses a Proxy so every property access dynamically checks the flag.
+function createDemoProxy(real: typeof _realApi, demo: typeof demoApi): typeof _realApi {
+  return new Proxy(real, {
+    get(target, prop: string) {
+      const source = isDemoMode() ? demo : target;
+      const value = (source as any)[prop];
+      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+        // Return a proxy for nested objects (e.g., api.shows.getOne)
+        return new Proxy(value, {
+          get(innerTarget, innerProp: string) {
+            const innerSource = isDemoMode() ? (demo as any)[prop] : innerTarget;
+            return innerSource[innerProp];
+          },
+        });
+      }
+      return value;
+    },
+  });
+}
+
+export const api = createDemoProxy(_realApi, demoApi);

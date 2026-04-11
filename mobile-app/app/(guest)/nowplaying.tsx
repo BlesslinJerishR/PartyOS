@@ -12,6 +12,7 @@ import {
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { api } from '../../services/api';
+import { isDemoMode } from '../../services/demo';
 import { useTheme } from '../../context/AuthContext';
 import { Fonts } from '../../constants/Fonts';
 import { Show } from '../../types';
@@ -20,11 +21,13 @@ import { MapPin, Clock, Users, Lock } from 'lucide-react-native';
 const ShowCard = memo(function ShowCard({ show, colors, onPress }: { show: Show; colors: any; onPress: (id: string) => void }) {
   return (
     <TouchableOpacity
-      style={[styles.showCard, { backgroundColor: colors.white, borderColor: colors.border }]}
+      style={[styles.showCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
       onPress={() => onPress(show.id)}
     >
       {show.moviePoster && (
-        <Image source={{ uri: show.moviePoster, cache: 'force-cache' }} style={styles.poster} />
+        <View style={styles.posterContainer}>
+          <Image source={{ uri: show.moviePoster, cache: 'force-cache' }} style={styles.poster} resizeMode="cover" />
+        </View>
       )}
       <View style={styles.showInfo}>
         <View style={[styles.liveBadge, { backgroundColor: colors.primary + '20' }]}>
@@ -71,11 +74,13 @@ export default function NowPlayingScreen() {
       let lat: number | undefined;
       let lng: number | undefined;
 
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === 'granted') {
-        const loc = await Location.getCurrentPositionAsync({});
-        lat = loc.coords.latitude;
-        lng = loc.coords.longitude;
+      if (!isDemoMode()) {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const loc = await Location.getCurrentPositionAsync({});
+          lat = loc.coords.latitude;
+          lng = loc.coords.longitude;
+        }
       }
 
       const data = (await api.shows.getNowPlaying(lat, lng)) as Show[];
@@ -171,9 +176,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderWidth: 1,
   },
-  poster: {
+  posterContainer: {
     width: 100,
-    height: 150,
+  },
+  poster: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    bottom: 0,
+    width: 100,
   },
   showInfo: {
     flex: 1,

@@ -13,7 +13,7 @@ import { router } from 'expo-router';
 import { storage } from '../services/storage';
 import { useTheme } from '../context/AuthContext';
 import { Fonts } from '../constants/Fonts';
-import { Tv, Users, MapPin } from 'lucide-react-native';
+import { Tv, Users, MapPin, Play } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -73,6 +73,11 @@ export default function OnboardingScreen() {
   const handleComplete = async () => {
     await storage.setOnboardingComplete();
     router.replace('/(auth)/login');
+  };
+
+  const handleFreeDemo = async () => {
+    await storage.setOnboardingComplete();
+    router.replace({ pathname: '/(auth)/login', params: { demo: '1' } });
   };
 
   const handleNext = () => {
@@ -197,6 +202,13 @@ export default function OnboardingScreen() {
             </Text>
           </TouchableOpacity>
         </View>
+        <TouchableOpacity
+          onPress={handleFreeDemo}
+          style={[styles.demoButton, { borderColor: hero }]}
+        >
+          <Play size={14} color={hero} strokeWidth={2} />
+          <Text style={[styles.demoText, { color: hero, fontFamily: Fonts.semiBold }]}>Try Free Demo</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -294,5 +306,19 @@ const styles = StyleSheet.create({
   nextText: {
     fontSize: 16,
     color: '#FFFFFF',
+  },
+  demoButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 12,
+    paddingVertical: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+  },
+  demoText: {
+    fontSize: 14,
   },
 });

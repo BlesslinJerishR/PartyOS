@@ -265,3 +265,62 @@ White Background + Black color for text content + Hero Color
 
 Black Background : #1D1E21
 Hero Color : #FF004F
+
+# FREE DEMO 
+
+# WITHOUT BACKEND ONLY STANDALONE FRONTEND FOR ONLY ONE SPECIFIC USERNAME AND PASSWORD
+
+Analyze my application completely and create a free demo account with dummy demo data and mock API. It should look like using real application but only on read only. all the destructive actions of CRUD should be disabled.  But all the buttons should work with demo data. except read and view only. On clicking Free Demo from the root landing page button it should take me directly to the application with demo and mock data / mock API. I want to view everything same like real user/admin.
+
+credentials to user and default auto fill in login
+
+username : blessl.in
+password : blessl.in
+
+x
+
+In Demo Mode
+In Party Host
+1. The canvas seats are overlappy. Don't overlap the position of the seats in canvas. be unique. No overlapping
+2. Cache and preload or save the banner of the demo movies images poster for both the Party Host and Party Guest demo mode. Now the banners are not loading without backend. fix
+3. show a private mode show also with the password blessl.in
+
+x
+
+1. In party host demo API
+in the movie banner the Transformers one banner image is not loaded. fix it or change the movie and banner to a working one
+2. In Party Guest screen , In Demo 
+coming soon second bottom tab section is not loading check and fix
+3. Maps section is not loading. check and fix. it's throwing rendered more hooks than previous render error. check and fix 
+4. in Party Guest the now playing cards Ui/Ux is not correct. improve it and normalize it like other cards
+5. in Tickets section, In history tickets section the completed badge ui is not correct its having more height. fix the cards normalize it
+
+x
+
+in Party Guest screen
+1. LeafletJS Maps are unreadable it is fully black . i need it in uber style black and white only. fix. also i don;t think i see any markers or clusters. Now playing, Upcoming, Venue. I see only you marker in Demo mode. check and fix for both live and demo mode
+2. upgrade the cards Ui/Ux of My Tickets, make it more clean, minimalistic and beautiful
+3. remove the header / navbar currently screen title header bar for Now Playing, Coming soon and Tickets. as the title are in the page screen itself. its repeating so remove the header navbar for these three.
+4. First click of logout not working but second click is working. check and fix
+
+In Party Host Screen
+
+1. remove the header / navbar currently screen title header bar for Dashboard and Requests as the title are in the page screen itself. its repeating so remove the header navbar for these two.
+
+2. after few seconds into the demo mode. its saying connection error or timeout , which is not required in demo mode check and fix
+
+3. Improve / Upgrade / rewrite the dashboard screen. make it more minimalistic, clean and simple. use lucide icons too
+
+make no mistakes. It should work end to end. implement end to end. implement both the frontend and backend. improvise as much as needed. improvise accordingly. make it as an enterprise grade level application. Implement
+
+X
+
+#EAS BUILD LOCALLY 
+
+Generate me a build config of eas locally and update README.md with 3 cmds
+
+three scenarios of eas build config
+
+1. local development client apk
+2. local apk
+3. playstore AAB

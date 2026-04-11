@@ -12,6 +12,7 @@ import {
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { api } from '../../services/api';
+import { isDemoMode } from '../../services/demo';
 import { useTheme } from '../../context/AuthContext';
 import { Fonts } from '../../constants/Fonts';
 import { Show } from '../../types';
@@ -90,11 +91,13 @@ export default function ComingSoonScreen() {
       let lat: number | undefined;
       let lng: number | undefined;
 
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === 'granted') {
-        const loc = await Location.getCurrentPositionAsync({});
-        lat = loc.coords.latitude;
-        lng = loc.coords.longitude;
+      if (!isDemoMode()) {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const loc = await Location.getCurrentPositionAsync({});
+          lat = loc.coords.latitude;
+          lng = loc.coords.longitude;
+        }
       }
 
       const data = (await api.shows.getUpcoming(lat, lng)) as Show[];
