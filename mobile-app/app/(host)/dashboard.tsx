@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   Alert,
+  Image,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth, useTheme } from '../../context/AuthContext';
@@ -24,6 +25,8 @@ import {
   Armchair,
   CircleDot,
   ChevronRight,
+  Monitor,
+  Projector,
 } from 'lucide-react-native';
 
 export default function DashboardScreen() {
@@ -178,6 +181,13 @@ export default function DashboardScreen() {
         ) : (
           activeShows.map((show) => (
             <View key={show.id} style={[styles.showRow, { backgroundColor: colors.surface }]}>
+              {show.moviePoster && (
+                <Image
+                  source={{ uri: show.moviePoster, cache: 'force-cache' }}
+                  style={styles.showPoster}
+                  resizeMode="cover"
+                />
+              )}
               <View style={styles.showLeft}>
                 <View style={styles.showTitleRow}>
                   <CircleDot
@@ -238,6 +248,12 @@ export default function DashboardScreen() {
                 </Text>
               </View>
               <View style={styles.venueRight}>
+                {venue.screenType === 'TV_4K' ? (
+                  <Monitor size={13} color={colors.textSecondary} strokeWidth={1.8} />
+                ) : (
+                  <Projector size={13} color={colors.textSecondary} strokeWidth={1.8} />
+                )}
+                <View style={styles.venueDivider} />
                 <Armchair size={13} color={colors.primary} strokeWidth={1.8} />
                 <Text style={[styles.venueSeatCount, { color: colors.primary, fontFamily: Fonts.dashMedium }]}>
                   {venue.seats?.length || 0}
@@ -333,6 +349,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 14,
     marginBottom: 8,
+    overflow: 'hidden',
+  },
+  showPoster: {
+    width: 40,
+    height: 56,
+    borderRadius: 6,
+    marginRight: 12,
   },
   showLeft: {
     flex: 1,
@@ -386,5 +409,11 @@ const styles = StyleSheet.create({
   },
   venueSeatCount: {
     fontSize: 13,
+  },
+  venueDivider: {
+    width: 1,
+    height: 14,
+    backgroundColor: 'rgba(128,128,128,0.25)',
+    marginHorizontal: 6,
   },
 });

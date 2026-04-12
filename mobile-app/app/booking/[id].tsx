@@ -82,14 +82,6 @@ export default function BookingScreen() {
     }
   }, [selectedSeatId, id, show?.isPrivate, showPassword, router]);
 
-  if (loading || !show) {
-    return (
-      <View style={[styles.center, { backgroundColor: colors.surface }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
-  }
-
   const maxRow = useMemo(() => seats.length > 0
     ? Math.max(...seats.map((s) => s.row + SEAT_DIMENSIONS[s.type].rows - 1), 0)
     : 0, [seats]);
@@ -98,6 +90,14 @@ export default function BookingScreen() {
     : 0, [seats]);
 
   const selectedSeat = useMemo(() => seats.find((s) => s.id === selectedSeatId), [seats, selectedSeatId]);
+
+  if (loading || !show) {
+    return (
+      <View style={[styles.center, { backgroundColor: colors.surface }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
   const getOccupiedCells = (): Set<string> => {
     const occupied = new Set<string>();

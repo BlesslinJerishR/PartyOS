@@ -22,6 +22,7 @@ import {
 } from '@expo-google-fonts/roboto';
 import { AuthProvider, useAuth, useTheme } from '../context/AuthContext';
 import { Fonts } from '../constants/Fonts';
+import { ToastProvider } from '../components/Toast';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -86,7 +87,9 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <InnerLayout />
+        <ToastProvider>
+          <InnerLayout />
+        </ToastProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );

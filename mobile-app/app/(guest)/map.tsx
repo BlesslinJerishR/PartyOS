@@ -78,7 +78,7 @@ export default function MapScreen() {
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body, #map { width: 100%; height: 100%; }
+    html, body, #map { width: 100%; height: 100%; background: ${colors.surface}; }
     .leaflet-tile-pane { filter: grayscale(100%); }
     .leaflet-control-zoom a {
       background: ${isDark ? '#2a2b2f' : '#FFFFFF'} !important;
@@ -266,10 +266,11 @@ export default function MapScreen() {
     <View style={[styles.container, { backgroundColor: colors.surface }]}>
       <WebView
         source={{ html: mapHtml }}
-        style={styles.webview}
+        style={[styles.webview, { backgroundColor: colors.surface }]}
         scrollEnabled={false}
         javaScriptEnabled
         domStorageEnabled
+        androidLayerType="hardware"
       />
     </View>
   );

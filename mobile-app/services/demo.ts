@@ -512,12 +512,11 @@ demoVenues[0].snacks = demoSnacks.filter(s => s.venueId === DEMO_VENUE_1);
 demoVenues[1].snacks = demoSnacks.filter(s => s.venueId === DEMO_VENUE_2);
 
 // ── Demo read-only alert ──────────────────────────────────────────
-const DEMO_ALERT_TITLE = 'Demo Mode';
-const DEMO_ALERT_MSG = 'This action is disabled in demo mode. Sign up for a free account to use all features!';
+const DEMO_TOAST_MSG = 'Demo mode — sign up for a free account to use all features';
 
 export function showDemoAlert(): void {
-  const { Alert } = require('react-native');
-  Alert.alert(DEMO_ALERT_TITLE, DEMO_ALERT_MSG);
+  const { showGlobalToast } = require('../components/Toast');
+  showGlobalToast(DEMO_TOAST_MSG);
 }
 
 // ── Mock API ──────────────────────────────────────────────────────
@@ -529,9 +528,22 @@ function delay<T>(data: T, ms = 300): Promise<T> {
   return new Promise((resolve) => setTimeout(() => resolve(data), ms));
 }
 
+// Custom error class so callers can silently skip demo rejections
+class DemoModeError extends Error {
+  isDemoMode = true;
+  constructor() {
+    super('Demo mode');
+    this.name = 'DemoModeError';
+  }
+}
+
 function demoReject(): Promise<never> {
   showDemoAlert();
-  return Promise.reject(new Error('Demo mode'));
+  return Promise.reject(new DemoModeError());
+}
+
+export function isDemoModeError(error: any): boolean {
+  return error?.isDemoMode === true;
 }
 
 export const demoApi = {

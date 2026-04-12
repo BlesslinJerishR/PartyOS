@@ -333,3 +333,29 @@ In demo mode
 2. If i click any on of the cards playing now. its throwing error. check and fix 
 
 LOGS
+
+In party guest
+
+1.Booking , book a seat button bug - rendered more hooks than previous render
+
+2. Everytime when map is opened it's flashing white color layer. Check and fix
+
+In party host
+
+3. In dashboard for both demo API and real API
+Render the movie posters for Active shows section. For demo preload the URL data
+
+4. In dashboard In my venues render the lucide icon for whether it is 4k TV or projector. Use the same icon from venue creation section
+
+In demo mode
+
+Totally two inbuilt native alerts are coming.
+
+a. Error demo mode
+b. Demo mode this action is disabled in demo mode. Signup for a free account to use all the features
+
+5. Instead of these two native alerts show a single beautiful minimalistic clean enterprise grade level toast 
+
+# 0 Mistakes
+
+Implement end to end. make no mistakes. Do both the frontend and backend end to end. Improvise as much as needed and possible. Improvise accordingly. It should be an actual production ready enterprise grade level application. make no mistakes.

@@ -1,7 +1,7 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { storage } from './storage';
-import { isDemoMode, demoApi } from './demo';
+import { isDemoMode, demoApi, isDemoModeError } from './demo';
 
 // ── Auth event listener for 401 handling ──────────────────────────
 type AuthEventListener = () => void;
@@ -473,6 +473,25 @@ export const _realApi = {
 // ── Demo mode proxy ───────────────────────────────────────────────
 // When demo mode is active, all API calls are routed to the mock API.
 // This uses a Proxy so every property access dynamically checks the flag.
+// DemoModeError rejections are silently swallowed so callers' catch
+// blocks don't show a second native alert.
+function wrapDemoFn(fn: any): any {
+  if (typeof fn !== 'function') return fn;
+  return (...args: any[]) => {
+    const result = fn(...args);
+    if (result && typeof result.catch === 'function') {
+      return result.catch((err: any) => {
+        if (isDemoModeError(err)) {
+          // Swallow — toast was already shown
+          return new Promise(() => {});
+        }
+        throw err;
+      });
+    }
+    return result;
+  };
+}
+
 function createDemoProxy(real: typeof _realApi, demo: typeof demoApi): typeof _realApi {
   return new Proxy(real, {
     get(target, prop: string) {
@@ -483,11 +502,12 @@ function createDemoProxy(real: typeof _realApi, demo: typeof demoApi): typeof _r
         return new Proxy(value, {
           get(innerTarget, innerProp: string) {
             const innerSource = isDemoMode() ? (demo as any)[prop] : innerTarget;
-            return innerSource[innerProp];
+            const innerValue = innerSource[innerProp];
+            return isDemoMode() ? wrapDemoFn(innerValue) : innerValue;
           },
         });
       }
-      return value;
+      return isDemoMode() ? wrapDemoFn(value) : value;
     },
   });
 }
