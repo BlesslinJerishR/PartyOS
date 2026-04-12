@@ -334,6 +334,8 @@ In demo mode
 
 LOGS
 
+x
+
 In party guest
 
 1.Booking , book a seat button bug - rendered more hooks than previous render
@@ -359,3 +361,15 @@ b. Demo mode this action is disabled in demo mode. Signup for a free account to 
 # 0 Mistakes
 
 Implement end to end. make no mistakes. Do both the frontend and backend end to end. Improvise as much as needed and possible. Improvise accordingly. It should be an actual production ready enterprise grade level application. make no mistakes.
+
+x
+
+In party guest
+Book Tickets
+In demo and In real prod API
+
+1.Book tickets legends are not correct fix. In seat there are different colors but legend only shows booked correctly all other two legend selected and available are showing in red color but the seats are unique different colors. check and fix
+
+2. Only one single ticket canbe able to book now , which is wrong. implement multiple ticket booking features 
+ 
+3. Show details header is not in correct style. i need it same header still as other headers eg: Map and Profile header style

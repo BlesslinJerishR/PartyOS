@@ -23,6 +23,7 @@ import {
 import { AuthProvider, useAuth, useTheme } from '../context/AuthContext';
 import { Fonts } from '../constants/Fonts';
 import { ToastProvider } from '../components/Toast';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -30,6 +31,7 @@ SplashScreen.preventAutoHideAsync();
 
 function InnerLayout() {
   const { colors, isDark, isDemo } = useAuth();
+  const insets = useSafeAreaInsets();
 
   return (
     <>
@@ -37,7 +39,7 @@ function InnerLayout() {
       {isDemo && (
         <View style={[demoBannerStyles.banner, { backgroundColor: colors.primary }]}>
           <Text style={[demoBannerStyles.text, { fontFamily: Fonts.semiBold }]}>
-            DEMO MODE — Read Only
+            DEMO MODE - Read Only
           </Text>
         </View>
       )}
@@ -45,9 +47,16 @@ function InnerLayout() {
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: colors.background },
-          headerStyle: { backgroundColor: colors.background },
+          headerStyle: {
+            backgroundColor: colors.background,
+          },
           headerTintColor: colors.text,
-          headerTitleStyle: { color: colors.text },
+          headerTitleStyle: {
+            fontFamily: Fonts.bold,
+            color: colors.text,
+            fontSize: 17,
+          },
+          headerShadowVisible: false,
         }}
       >
         <Stack.Screen name="onboarding" />

@@ -512,7 +512,7 @@ demoVenues[0].snacks = demoSnacks.filter(s => s.venueId === DEMO_VENUE_1);
 demoVenues[1].snacks = demoSnacks.filter(s => s.venueId === DEMO_VENUE_2);
 
 // ── Demo read-only alert ──────────────────────────────────────────
-const DEMO_TOAST_MSG = 'Demo mode — sign up for a free account to use all features';
+const DEMO_TOAST_MSG = 'Demo mode - sign up for a free account to use all features';
 
 export function showDemoAlert(): void {
   const { showGlobalToast } = require('../components/Toast');
@@ -712,6 +712,7 @@ export const demoApi = {
 
   tickets: {
     book(_showId: string, _seatId: string, _password?: string) { return demoReject(); },
+    bookMultiple(_showId: string, _seatIds: string[], _password?: string) { return demoReject(); },
     getMy() { return delay(demoTickets); },
     getByShow(showId: string) {
       return delay(demoTickets.filter(t => t.showId === showId));

@@ -14,6 +14,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { TicketsService } from './tickets.service';
 import { BookTicketDto } from './dto/book-ticket.dto';
+import { BookMultipleTicketsDto } from './dto/book-multiple-tickets.dto';
 
 @Controller('tickets')
 @UseGuards(JwtAuthGuard)
@@ -25,6 +26,13 @@ export class TicketsController {
   @Roles('GUEST' as any)
   book(@CurrentUser('id') userId: string, @Body() dto: BookTicketDto) {
     return this.ticketsService.book(userId, dto);
+  }
+
+  @Post('batch')
+  @UseGuards(RolesGuard)
+  @Roles('GUEST' as any)
+  bookMultiple(@CurrentUser('id') userId: string, @Body() dto: BookMultipleTicketsDto) {
+    return this.ticketsService.bookMultiple(userId, dto);
   }
 
   @Get('my')

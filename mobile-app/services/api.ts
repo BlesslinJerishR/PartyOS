@@ -364,6 +364,16 @@ export const _realApi = {
         body: JSON.stringify(body),
       });
     },
+    bookMultiple(showId: string, seatIds: string[], password?: string) {
+      const body: any = { showId, seatIds };
+      if (password) body.password = password;
+      invalidateCache('/tickets/');
+      invalidateCache('/shows/');
+      return request('/tickets/batch', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      });
+    },
     getMy() {
       const key = '/tickets/my';
       const cached = getCached(key);

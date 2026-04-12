@@ -25,7 +25,7 @@ export default function BookingScreen() {
   const [show, setShow] = useState<Show | null>(null);
   const [seats, setSeats] = useState<Seat[]>([]);
   const [bookedSeatIds, setBookedSeatIds] = useState<Set<string>>(new Set());
-  const [selectedSeatId, setSelectedSeatId] = useState<string | null>(null);
+  const [selectedSeatIds, setSelectedSeatIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [booking, setBooking] = useState(false);
   const [showPassword, setShowPassword] = useState('');
@@ -61,8 +61,20 @@ export default function BookingScreen() {
     loadData();
   }, [loadData]);
 
+  const toggleSeat = useCallback((seatId: string) => {
+    setSelectedSeatIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(seatId)) {
+        next.delete(seatId);
+      } else {
+        next.add(seatId);
+      }
+      return next;
+    });
+  }, []);
+
   const handleBook = useCallback(async () => {
-    if (!selectedSeatId || !id) return;
+    if (selectedSeatIds.size === 0 || !id) return;
 
     if (show?.isPrivate && !showPassword.trim()) {
       Alert.alert('Password Required', 'Please enter the show password to book.');
@@ -71,8 +83,17 @@ export default function BookingScreen() {
 
     setBooking(true);
     try {
-      await api.tickets.book(id, selectedSeatId, show?.isPrivate ? showPassword : undefined);
-      Alert.alert('Success', 'Ticket booked successfully', [
+      const seatIdsArray = [...selectedSeatIds];
+      const password = show?.isPrivate ? showPassword : undefined;
+
+      if (seatIdsArray.length === 1) {
+        await api.tickets.book(id, seatIdsArray[0], password);
+      } else {
+        await api.tickets.bookMultiple(id, seatIdsArray, password);
+      }
+
+      const count = seatIdsArray.length;
+      Alert.alert('Success', `${count} ticket${count > 1 ? 's' : ''} booked successfully`, [
         { text: 'OK', onPress: () => router.back() },
       ]);
     } catch (error: any) {
@@ -80,7 +101,7 @@ export default function BookingScreen() {
     } finally {
       setBooking(false);
     }
-  }, [selectedSeatId, id, show?.isPrivate, showPassword, router]);
+  }, [selectedSeatIds, id, show?.isPrivate, showPassword, router]);
 
   const maxRow = useMemo(() => seats.length > 0
     ? Math.max(...seats.map((s) => s.row + SEAT_DIMENSIONS[s.type].rows - 1), 0)
@@ -89,7 +110,27 @@ export default function BookingScreen() {
     ? Math.max(...seats.map((s) => s.col + SEAT_DIMENSIONS[s.type].cols - 1), 0)
     : 0, [seats]);
 
-  const selectedSeat = useMemo(() => seats.find((s) => s.id === selectedSeatId), [seats, selectedSeatId]);
+  const selectedSeats = useMemo(
+    () => seats.filter((s) => selectedSeatIds.has(s.id)),
+    [seats, selectedSeatIds],
+  );
+
+  // Derive unique seat types present in the venue for the legend
+  const seatTypesInVenue = useMemo(() => {
+    const typeSet = new Set<SeatType>();
+    seats.forEach((s) => typeSet.add(s.type));
+    return [...typeSet];
+  }, [seats]);
+
+  const totalCapacity = useMemo(
+    () => selectedSeats.reduce((sum, s) => sum + SEAT_CAPACITIES[s.type], 0),
+    [selectedSeats],
+  );
+
+  const totalPrice = useMemo(
+    () => show ? (show.isFree ? 0 : show.price * selectedSeats.length) : 0,
+    [show, selectedSeats],
+  );
 
   if (loading || !show) {
     return (
@@ -140,7 +181,7 @@ export default function BookingScreen() {
       const seatWidth = dims.cols * GRID_CELL_SIZE - 6;
       const seatHeight = dims.rows * GRID_CELL_SIZE - 6;
       const isBooked = bookedSeatIds.has(seat.id);
-      const isSelected = selectedSeatId === seat.id;
+      const isSelected = selectedSeatIds.has(seat.id);
       const color = SEAT_COLORS[seat.type] || colors.textLight;
 
       elements.push(
@@ -164,7 +205,7 @@ export default function BookingScreen() {
             justifyContent: 'center',
           }}
           disabled={isBooked}
-          onPress={() => setSelectedSeatId(selectedSeatId === seat.id ? null : seat.id)}
+          onPress={() => toggleSeat(seat.id)}
           activeOpacity={0.7}
         >
           {isBooked ? (
@@ -211,7 +252,9 @@ export default function BookingScreen() {
     <ScrollView style={[styles.container, { backgroundColor: colors.surface }]}>
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.text, fontFamily: Fonts.hero }]}>{show.movieTitle}</Text>
-        <Text style={[styles.subtitle, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>Select a seat to book</Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>
+          Tap to select seats · multiple allowed
+        </Text>
       </View>
 
       <View style={styles.screenContainer}>
@@ -226,37 +269,61 @@ export default function BookingScreen() {
         {renderGrid()}
       </ScrollView>
 
-      <View style={styles.legend}>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: colors.textLight }]} />
-          <Text style={[styles.legendText, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>Booked</Text>
+      {/* Legend — seat type colors + booked + selected indicators */}
+      <View style={styles.legendContainer}>
+        <View style={styles.legendRow}>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border }]}>
+              <X size={7} color={colors.textLight} strokeWidth={2.5} />
+            </View>
+            <Text style={[styles.legendText, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>Booked</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: colors.text }]}>
+              <Check size={7} color={colors.background} strokeWidth={2.5} />
+            </View>
+            <Text style={[styles.legendText, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>Selected</Text>
+          </View>
         </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: colors.primary }]} />
-          <Text style={[styles.legendText, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>Selected</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View
-            style={[
-              styles.legendDot,
-              { backgroundColor: colors.primary + '30', borderWidth: 1, borderColor: colors.primary },
-            ]}
-          />
-          <Text style={[styles.legendText, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>Available</Text>
+        <View style={styles.legendRow}>
+          {seatTypesInVenue.map((type) => (
+            <View key={type} style={styles.legendItem}>
+              <View
+                style={[
+                  styles.legendDot,
+                  { backgroundColor: SEAT_COLORS[type] + '30', borderWidth: 1, borderColor: SEAT_COLORS[type] },
+                ]}
+              />
+              <Text style={[styles.legendText, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>
+                {SEAT_TYPE_LABELS[type]}
+              </Text>
+            </View>
+          ))}
         </View>
       </View>
 
-      {selectedSeat && (
+      {selectedSeats.length > 0 && (
         <View style={[styles.selectionCard, { backgroundColor: colors.background, borderColor: colors.primary }]}>
-          <Text style={[styles.selectionLabel, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>Selected Seat</Text>
-          <Text style={[styles.selectionValue, { color: colors.text, fontFamily: Fonts.bold }]}>
-            {selectedSeat.label} ({SEAT_TYPE_LABELS[selectedSeat.type]})
+          <Text style={[styles.selectionLabel, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>
+            Selected — {selectedSeats.length} seat{selectedSeats.length > 1 ? 's' : ''}
           </Text>
+          <View style={styles.selectedSeatsList}>
+            {selectedSeats.map((seat) => (
+              <View key={seat.id} style={[styles.seatChip, { backgroundColor: SEAT_COLORS[seat.type] + '20', borderColor: SEAT_COLORS[seat.type] }]}>
+                <Text style={[styles.seatChipText, { color: SEAT_COLORS[seat.type], fontFamily: Fonts.semiBold }]}>
+                  {seat.label}
+                </Text>
+                <TouchableOpacity onPress={() => toggleSeat(seat.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <X size={12} color={SEAT_COLORS[seat.type]} strokeWidth={2.5} />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
           <Text style={[styles.selectionCapacity, { color: colors.textSecondary, fontFamily: Fonts.regular }]}>
-            Fits {SEAT_CAPACITIES[selectedSeat.type]} person(s)
+            Total capacity: {totalCapacity} person{totalCapacity !== 1 ? 's' : ''}
           </Text>
           <Text style={[styles.selectionPrice, { color: colors.primary, fontFamily: Fonts.semiBold }]}>
-            {show.isFree ? 'Free Entry' : `Price: ${show.price}`}
+            {show.isFree ? 'Free Entry' : `Total: \u20b9${totalPrice}`}
           </Text>
         </View>
       )}
@@ -284,13 +351,17 @@ export default function BookingScreen() {
         style={[
           styles.bookButton,
           { backgroundColor: colors.primary },
-          (!selectedSeatId || booking) && styles.bookButtonDisabled,
+          (selectedSeatIds.size === 0 || booking) && styles.bookButtonDisabled,
         ]}
         onPress={handleBook}
-        disabled={!selectedSeatId || booking}
+        disabled={selectedSeatIds.size === 0 || booking}
       >
         <Text style={[styles.bookButtonText, { color: colors.white, fontFamily: Fonts.bold }]}>
-          {booking ? 'Booking...' : 'Confirm Booking'}
+          {booking
+            ? 'Booking...'
+            : selectedSeatIds.size > 1
+            ? `Confirm ${selectedSeatIds.size} Tickets`
+            : 'Confirm Booking'}
         </Text>
       </TouchableOpacity>
 
@@ -318,17 +389,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 4,
   },
-  screen: {
-    marginHorizontal: 40,
-    paddingVertical: 8,
-    borderRadius: 4,
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  screenText: {
-    fontSize: 12,
-    letterSpacing: 2,
-  },
   screenContainer: {
     alignItems: 'center',
     marginBottom: 20,
@@ -351,24 +411,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     alignItems: 'center',
   },
-  legend: {
+  legendContainer: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  legendRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'center',
-    gap: 20,
-    paddingVertical: 16,
+    gap: 14,
   },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
   },
   legendDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 3,
+    width: 14,
+    height: 14,
+    borderRadius: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   legendText: {
-    fontSize: 12,
+    fontSize: 11,
   },
   selectionCard: {
     marginHorizontal: 16,
@@ -378,18 +445,32 @@ const styles = StyleSheet.create({
   },
   selectionLabel: {
     fontSize: 12,
-    marginBottom: 4,
+    marginBottom: 8,
   },
-  selectionValue: {
-    fontSize: 18,
+  selectedSeatsList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 10,
+  },
+  seatChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  seatChipText: {
+    fontSize: 13,
   },
   selectionCapacity: {
     fontSize: 13,
-    marginTop: 4,
   },
   selectionPrice: {
     fontSize: 16,
-    marginTop: 8,
+    marginTop: 6,
   },
   bookButton: {
     marginHorizontal: 16,
